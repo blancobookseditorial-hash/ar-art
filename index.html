@@ -65,8 +65,6 @@
     <button id="startBtn">Activar camara</button>
   </div>
 
-  <div id="aviso"></div>
-
   <div id="titulo"></div>
   <div id="hint">Apunta al cuadro</div>
 
@@ -103,47 +101,52 @@
     var sceneEl = document.querySelector('a-scene');
     var hint = document.getElementById('hint');
     var titulo = document.getElementById('titulo');
-    var aviso = document.getElementById('aviso');
     var intro = document.getElementById('intro');
-    var arrancado = false;
 
-    function mostrarAviso(html) {
-      aviso.innerHTML = html;
-      aviso.style.display = 'flex';
-      intro.style.display = 'none';
-      var btn = aviso.querySelector('button');
-      if (btn) btn.addEventListener('click', function () { location.reload(); });
-    }
-
-    document.getElementById('startBtn').addEventListener('click', async function () {
+    document.getElementById('startBtn').addEventListener('click', function () {
       intro.style.display = 'none';
 
+      // Desbloquea el audio aprovechando el toque del usuario (iOS)
       document.querySelectorAll('video').forEach(function (v) {
         v.muted = false;
         v.volume = 1;
       });
 
+      // Arranca la camara y, cuando ya esta activa, ajusta el encuadre.
       var system = sceneEl.systems['mindar-image-system'];
-      try {
-        await system.start();
-      } catch (e) {
-        var nombre = e && e.name ? e.name : '';
-        if (nombre === 'NotAllowedError' || nombre === 'SecurityError') {
-          mostrarAviso(
-            'Safari tiene bloqueado el acceso a la camara.<br><br>' +
-            'Ve a <b>Ajustes &gt; Safari &gt; Camara</b> y ponlo en <b>Preguntar</b>.<br><br>' +
-            'Despues cierra esta pestana por completo, abre una nueva y vuelve a entrar.<br><br>' +
-            '<button>Reintentar</button>'
-          );
-        } else {
-          mostrarAviso(
-            'No se pudo iniciar la camara.<br><br>' +
-            'Comprueba que estas en Safari con la pagina en https y que aceptaste el permiso.<br><br>' +
-            '<button>Reintentar</button>'
-          );
-        }
+      var p = system.start();
+      if (p && p.then) {
+        p.then(function () {
+          ajustarEncuadre();
+        }).catch(function () {});
+      } else {
+        ajustarEncuadre();
       }
     });
+
+    // Redimensiona el lienzo una vez la camara esta en marcha, para que
+    // ocupe toda la pantalla en Safari sin romper el arranque.
+    function ajustarEncuadre() {
+      try {
+        var canvas = document.querySelector('.a-canvas') || document.querySelector('canvas');
+        if (!canvas) return;
+        canvas.style.position = 'fixed';
+        canvas.style.top = '0';
+        canvas.style.left = '0';
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+
+        var w = window.innerWidth;
+        var h = window.innerHeight;
+        sceneEl.renderer.setSize(w, h);
+        window.dispatchEvent(new Event('resize'));
+      } catch (e) {}
+    }
+
+    function ajustarConRetraso() {
+      setTimeout(ajustarEncuadre, 400);
+      setTimeout(ajustarEncuadre, 1200);
+    }
 
     sceneEl.addEventListener('loaded', function () {
       document.querySelectorAll('[mindar-image-target]').forEach(function (target) {
@@ -156,8 +159,8 @@
           titulo.textContent = nombre;
           titulo.style.opacity = '1';
           video.currentTime = 0;
-          var p = video.play();
-          if (p && p.catch) p.catch(function () {});
+          var vp = video.play();
+          if (vp && vp.catch) vp.catch(function () {});
         });
 
         target.addEventListener('targetLost', function () {
@@ -166,7 +169,12 @@
           video.pause();
         });
       });
+
+      ajustarConRetraso();
     });
+
+    window.addEventListener('resize', function () { ajustarConRetraso(); });
+    window.addEventListener('orientationchange', function () { ajustarConRetraso(); });
   </script>
 
 </body>
