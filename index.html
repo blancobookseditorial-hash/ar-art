@@ -26,21 +26,6 @@
       cursor: pointer;
     }
 
-    #aviso {
-      position: fixed; inset: 0; z-index: 9998;
-      background: #111; color: #fff;
-      display: none;
-      align-items: center; justify-content: center;
-      text-align: center; padding: 24px;
-      font-size: 1rem; line-height: 1.6;
-    }
-    #aviso button {
-      display: block; margin: 20px auto 0;
-      padding: 12px 28px; border: none; border-radius: 999px;
-      background: #fff; color: #111; font-weight: 600;
-      font-size: 1rem; cursor: pointer;
-    }
-
     #hint {
       position: fixed; bottom: 24px; left: 0; right: 0;
       z-index: 50; text-align: center; color: #fff;
@@ -101,10 +86,9 @@
     var sceneEl = document.querySelector('a-scene');
     var hint = document.getElementById('hint');
     var titulo = document.getElementById('titulo');
-    var intro = document.getElementById('intro');
 
-    document.getElementById('startBtn').addEventListener('click', function () {
-      intro.style.display = 'none';
+    document.getElementById('startBtn').addEventListener('click', async function () {
+      document.getElementById('intro').style.display = 'none';
 
       // Desbloquea el audio aprovechando el toque del usuario (iOS)
       document.querySelectorAll('video').forEach(function (v) {
@@ -112,41 +96,9 @@
         v.volume = 1;
       });
 
-      // Arranca la camara y, cuando ya esta activa, ajusta el encuadre.
       var system = sceneEl.systems['mindar-image-system'];
-      var p = system.start();
-      if (p && p.then) {
-        p.then(function () {
-          ajustarEncuadre();
-        }).catch(function () {});
-      } else {
-        ajustarEncuadre();
-      }
+      await system.start();
     });
-
-    // Redimensiona el lienzo una vez la camara esta en marcha, para que
-    // ocupe toda la pantalla en Safari sin romper el arranque.
-    function ajustarEncuadre() {
-      try {
-        var canvas = document.querySelector('.a-canvas') || document.querySelector('canvas');
-        if (!canvas) return;
-        canvas.style.position = 'fixed';
-        canvas.style.top = '0';
-        canvas.style.left = '0';
-        canvas.style.width = '100%';
-        canvas.style.height = '100%';
-
-        var w = window.innerWidth;
-        var h = window.innerHeight;
-        sceneEl.renderer.setSize(w, h);
-        window.dispatchEvent(new Event('resize'));
-      } catch (e) {}
-    }
-
-    function ajustarConRetraso() {
-      setTimeout(ajustarEncuadre, 400);
-      setTimeout(ajustarEncuadre, 1200);
-    }
 
     sceneEl.addEventListener('loaded', function () {
       document.querySelectorAll('[mindar-image-target]').forEach(function (target) {
@@ -159,8 +111,7 @@
           titulo.textContent = nombre;
           titulo.style.opacity = '1';
           video.currentTime = 0;
-          var vp = video.play();
-          if (vp && vp.catch) vp.catch(function () {});
+          video.play().catch(function () {});
         });
 
         target.addEventListener('targetLost', function () {
@@ -169,12 +120,7 @@
           video.pause();
         });
       });
-
-      ajustarConRetraso();
     });
-
-    window.addEventListener('resize', function () { ajustarConRetraso(); });
-    window.addEventListener('orientationchange', function () { ajustarConRetraso(); });
   </script>
 
 </body>
