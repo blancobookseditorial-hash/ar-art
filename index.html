@@ -1,126 +1,299 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <title>Blanco Books Editorial - Galeria AR</title>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, user-scalable=no">
+
+  <title>Blanco Books Editorial | Galeria AR</title>
+
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-  <style>
-    body { margin: 0; overflow: hidden; font-family: system-ui, sans-serif; background: #111; }
 
-    #intro {
-      position: fixed; inset: 0; z-index: 9999;
-      background: #111; color: #fff;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      text-align: center; padding: 24px;
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
     }
-    #intro h1 { font-size: 1.5rem; margin: 0 0 12px; }
-    #intro p { opacity: .75; max-width: 320px; line-height: 1.5; }
-    #intro button {
-      margin-top: 28px; padding: 16px 40px;
-      font-size: 1.1rem; border: none; border-radius: 999px;
-      background: #fff; color: #111; font-weight: 600;
+
+    #startScreen {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      background: rgba(0, 0, 0, 0.88);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      text-align: center;
+      padding: 25px;
+      box-sizing: border-box;
+    }
+
+    #startScreen h1 {
+      margin-bottom: 5px;
+    }
+
+    #startButton {
+      margin-top: 25px;
+      padding: 16px 28px;
+      border: none;
+      border-radius: 30px;
+      font-size: 18px;
+      font-weight: bold;
       cursor: pointer;
     }
 
-    #hint {
-      position: fixed; bottom: 24px; left: 0; right: 0;
-      z-index: 50; text-align: center; color: #fff;
-      font-size: .9rem; text-shadow: 0 1px 4px rgba(0,0,0,.8);
-      pointer-events: none; transition: opacity .4s;
-    }
-
-    #titulo {
-      position: fixed; top: 24px; left: 0; right: 0;
-      z-index: 50; text-align: center; color: #fff;
-      font-size: 1.1rem; font-weight: 600; letter-spacing: .02em;
-      text-shadow: 0 1px 6px rgba(0,0,0,.9);
-      pointer-events: none; opacity: 0; transition: opacity .4s;
+    #instructions {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      background: rgba(0,0,0,0.75);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 20px;
+      text-align: center;
+      width: 80%;
+      max-width: 400px;
+      display: none;
     }
   </style>
 </head>
+
 <body>
 
-  <div id="intro">
+  <!-- Pantalla de inicio para el cliente -->
+  <div id="startScreen">
+
     <h1>Blanco Books Editorial</h1>
-    <p>Apunta la camara hacia uno de los cuadros para ver como cobra vida.</p>
-    <button id="startBtn">Activar camara</button>
+
+    <p>
+      Una experiencia en Realidad Aumentada<br>
+      para nuestras obras
+    </p>
+
+    <button id="startButton">
+      Iniciar experiencia AR
+    </button>
+
+    <p style="font-size:12px; opacity:0.7; margin-top:20px;">
+      Permite el acceso a la camara cuando te lo pida.
+    </p>
+
   </div>
 
-  <div id="titulo"></div>
-  <div id="hint">Apunta al cuadro</div>
+  <!-- Instrucciones mientras busca -->
+  <div id="instructions">
+    Apunta la camara a uno de los cuadros
+  </div>
+
 
   <a-scene
-    mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: no; uiError: no; uiScanning: no; filterMinCF: 0.0001; filterBeta: 0.001; warmupTolerance: 5; missTolerance: 5"
+    mindar-image="imageTargetSrc: ./targets.mind;"
     color-space="sRGB"
-    renderer="colorManagement: true; alpha: true; antialias: true"
+    renderer="colorManagement: true, physicallyCorrectLights"
     vr-mode-ui="enabled: false"
-    device-orientation-permission-ui="enabled: false"
-    loading-screen="enabled: false">
+    device-orientation-permission-ui="enabled: false">
 
     <a-assets>
-      <video id="v0" src="./videos/anatomia-isla.mp4" preload="auto"
-             loop playsinline webkit-playsinline crossorigin="anonymous"></video>
-      <video id="v1" src="./videos/seths-dreams.mp4" preload="auto"
-             loop playsinline webkit-playsinline crossorigin="anonymous"></video>
+
+      <video
+        id="videoIsla"
+        src="./videos/anatomia-isla.mp4"
+        preload="auto"
+        loop
+        playsinline
+        webkit-playsinline>
+      </video>
+
+      <video
+        id="videoSeths"
+        src="./videos/seths-dreams.mp4"
+        preload="auto"
+        loop
+        playsinline
+        webkit-playsinline>
+      </video>
+
     </a-assets>
 
-    <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse" active="true"></a-camera>
+
+    <a-camera
+      position="0 0 0"
+      look-controls="enabled: false">
+    </a-camera>
+
 
     <!-- 0 - Anatomia de una Isla (horizontal) -->
-    <a-entity mindar-image-target="targetIndex: 0" data-titulo="Anatomia de una Isla">
-      <a-video src="#v0" position="0 0 0" height="0.75" width="1" rotation="0 0 0"></a-video>
+    <a-entity
+      id="targetIsla"
+      mindar-image-target="targetIndex: 0">
+
+      <a-video
+        src="#videoIsla"
+        position="0 0 0.01"
+        width="1"
+        height="0.75">
+      </a-video>
+
     </a-entity>
 
+
     <!-- 1 - Seths Dreams (vertical) -->
-    <a-entity mindar-image-target="targetIndex: 1" data-titulo="Seths Dreams">
-      <a-video src="#v1" position="0 0 0" height="1.333" width="1" rotation="0 0 0"></a-video>
+    <a-entity
+      id="targetSeths"
+      mindar-image-target="targetIndex: 1">
+
+      <a-video
+        src="#videoSeths"
+        position="0 0 0.01"
+        width="1"
+        height="1.25">
+      </a-video>
+
     </a-entity>
 
   </a-scene>
 
+
   <script>
-    var sceneEl = document.querySelector('a-scene');
-    var hint = document.getElementById('hint');
-    var titulo = document.getElementById('titulo');
 
-    document.getElementById('startBtn').addEventListener('click', async function () {
-      document.getElementById('intro').style.display = 'none';
+    document.addEventListener("DOMContentLoaded", () => {
 
-      // Desbloquea el audio aprovechando el toque del usuario (iOS)
-      document.querySelectorAll('video').forEach(function (v) {
-        v.muted = false;
-        v.volume = 1;
+      const videoIsla =
+        document.querySelector("#videoIsla");
+
+      const videoSeths =
+        document.querySelector("#videoSeths");
+
+      const targetIsla =
+        document.querySelector("#targetIsla");
+
+      const targetSeths =
+        document.querySelector("#targetSeths");
+
+      const startButton =
+        document.querySelector("#startButton");
+
+      const startScreen =
+        document.querySelector("#startScreen");
+
+      const instructions =
+        document.querySelector("#instructions");
+
+
+      let experienceStarted = false;
+
+
+      /*
+       * El toque del cliente da permiso al navegador
+       * para reproducir audio.
+       */
+      startButton.addEventListener("click", async () => {
+
+        experienceStarted = true;
+
+        videoIsla.muted = false;
+        videoIsla.volume = 1;
+
+        videoSeths.muted = false;
+        videoSeths.volume = 1;
+
+        /*
+         * Arranca y pausa cada video de inmediato.
+         * Esto desbloquea el audio en movil.
+         */
+        try {
+
+          await videoIsla.play();
+          videoIsla.pause();
+          videoIsla.currentTime = 0;
+
+        } catch (error) {
+
+          console.log("Audio unlock (isla):", error);
+
+        }
+
+        try {
+
+          await videoSeths.play();
+          videoSeths.pause();
+          videoSeths.currentTime = 0;
+
+        } catch (error) {
+
+          console.log("Audio unlock (seths):", error);
+
+        }
+
+        startScreen.style.display = "none";
+        instructions.style.display = "block";
+
       });
 
-      var system = sceneEl.systems['mindar-image-system'];
-      await system.start();
-    });
 
-    sceneEl.addEventListener('loaded', function () {
-      document.querySelectorAll('[mindar-image-target]').forEach(function (target) {
-        var videoEl = target.querySelector('a-video');
-        var video = document.querySelector(videoEl.getAttribute('src'));
-        var nombre = target.getAttribute('data-titulo');
+      /*
+       * Obra reconocida: Anatomia de una Isla
+       */
+      targetIsla.addEventListener("targetFound", () => {
 
-        target.addEventListener('targetFound', function () {
-          hint.style.opacity = '0';
-          titulo.textContent = nombre;
-          titulo.style.opacity = '1';
-          video.currentTime = 0;
-          video.play().catch(function () {});
-        });
+        instructions.style.display = "none";
 
-        target.addEventListener('targetLost', function () {
-          hint.style.opacity = '1';
-          titulo.style.opacity = '0';
-          video.pause();
-        });
+        if (experienceStarted) {
+
+          videoIsla.play().catch(error => {
+            console.log("Video isla:", error);
+          });
+
+        }
+
       });
+
+      targetIsla.addEventListener("targetLost", () => {
+
+        videoIsla.pause();
+
+        if (experienceStarted) {
+          instructions.style.display = "block";
+        }
+
+      });
+
+
+      /*
+       * Obra reconocida: Seths Dreams
+       */
+      targetSeths.addEventListener("targetFound", () => {
+
+        instructions.style.display = "none";
+
+        if (experienceStarted) {
+
+          videoSeths.play().catch(error => {
+            console.log("Video seths:", error);
+          });
+
+        }
+
+      });
+
+      targetSeths.addEventListener("targetLost", () => {
+
+        videoSeths.pause();
+
+        if (experienceStarted) {
+          instructions.style.display = "block";
+        }
+
+      });
+
     });
+
   </script>
 
 </body>
