@@ -19,19 +19,20 @@
     }
     #intro h1 { font-size: 1.5rem; margin: 0 0 12px; }
     #intro p { opacity: .75; max-width: 320px; line-height: 1.5; }
-    #startBtn {
+    #intro button {
       margin-top: 28px; padding: 16px 40px;
       font-size: 1.1rem; border: none; border-radius: 999px;
       background: #fff; color: #111; font-weight: 600;
+      cursor: pointer;
     }
 
-    #cargando {
+    #aviso {
       position: fixed; inset: 0; z-index: 9998;
       background: #111; color: #fff;
       display: none;
       align-items: center; justify-content: center;
       text-align: center; padding: 24px;
-      font-size: 1rem;
+      font-size: 1rem; line-height: 1.6;
     }
 
     #hint {
@@ -48,6 +49,13 @@
       text-shadow: 0 1px 6px rgba(0,0,0,.9);
       pointer-events: none; opacity: 0; transition: opacity .4s;
     }
+
+    #retryBtn {
+      display: block; margin: 20px auto 0;
+      padding: 12px 28px; border: none; border-radius: 999px;
+      background: #fff; color: #111; font-weight: 600;
+      font-size: 1rem; cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -58,7 +66,7 @@
     <button id="startBtn">Activar camara</button>
   </div>
 
-  <div id="cargando">Preparando la camara...</div>
+  <div id="aviso"></div>
 
   <div id="titulo"></div>
   <div id="hint">Apunta al cuadro</div>
@@ -96,11 +104,58 @@
     var sceneEl = document.querySelector('a-scene');
     var hint = document.getElementById('hint');
     var titulo = document.getElementById('titulo');
-    var cargando = document.getElementById('cargando');
+    var aviso = document.getElementById('aviso');
+    var intro = document.getElementById('intro');
+
+    // Paso 1: pedir la camara directamente al usuario (gesto explicito)
+    function pedirCamara() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        return Promise.reject(new Error('sin-soporte'));
+      }
+      return navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+        audio: false
+      });
+    }
+
+    function mostrarAviso(html) {
+      aviso.innerHTML = html;
+      aviso.style.display = 'flex';
+      intro.style.display = 'none';
+    }
 
     document.getElementById('startBtn').addEventListener('click', async function () {
-      document.getElementById('intro').style.display = 'none';
-      cargando.style.display = 'flex';
+      intro.style.display = 'none';
+
+      var stream;
+      try {
+        stream = await pedirCamara();
+      } catch (e) {
+        // Distinguimos el tipo de fallo para dar instrucciones utiles
+        var nombre = e && e.name ? e.name : '';
+        if (nombre === 'NotAllowedError' || nombre === 'SecurityError') {
+          mostrarAviso(
+            'Safari tiene bloqueado el acceso a la camara.<br><br>' +
+            'En el iPhone: <b>Ajustes &gt; Safari &gt; Camara</b> y ponlo en <b>Preguntar</b>.<br><br>' +
+            'Luego cierra esta pestana por completo, abre una nueva y vuelve a entrar.<br><br>' +
+            '<button id="retryBtn">Ya lo cambie, reintentar</button>'
+          );
+        } else if (nombre === 'NotFoundError' || nombre === 'DevicesNotFoundError') {
+          mostrarAviso('No se encontro ninguna camara en este dispositivo.');
+        } else {
+          mostrarAviso(
+            'No se pudo abrir la camara.<br><br>' +
+            'Asegurate de estar en <b>Safari</b> o <b>Chrome</b>, con la pagina en https, y de haber aceptado el permiso.<br><br>' +
+            '<button id="retryBtn">Reintentar</button>'
+          );
+        }
+        var btn = document.getElementById('retryBtn');
+        if (btn) btn.addEventListener('click', function () { location.reload(); });
+        return;
+      }
+
+      // Ya tenemos permiso: liberamos esas pistas y arrancamos MindAR
+      stream.getTracks().forEach(function (t) { t.stop(); });
 
       // Desbloquea el audio aprovechando el toque del usuario (iOS)
       document.querySelectorAll('video').forEach(function (v) {
@@ -111,9 +166,8 @@
       var system = sceneEl.systems['mindar-image-system'];
       try {
         await system.start();
-        cargando.style.display = 'none';
-      } catch (e) {
-        cargando.innerHTML = 'No se pudo abrir la camara.<br>Revisa los permisos del navegador y recarga la pagina.';
+      } catch (e2) {
+        mostrarAviso('La camara se autorizo, pero la escena AR no pudo iniciar. Recarga la pagina.');
       }
     });
 
