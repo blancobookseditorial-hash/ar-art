@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Blanco Books Editorial - Galeria AR</title>
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <style>
+    body { margin: 0; overflow: hidden; font-family: system-ui, sans-serif; background: #111; }
+
+    #intro {
+      position: fixed; inset: 0; z-index: 9999;
+      background: #111; color: #fff;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; padding: 24px;
+    }
+    #intro h1 { font-size: 1.5rem; margin: 0 0 12px; }
+    #intro p { opacity: .75; max-width: 320px; line-height: 1.5; }
+    #startBtn {
+      margin-top: 28px; padding: 16px 40px;
+      font-size: 1.1rem; border: none; border-radius: 999px;
+      background: #fff; color: #111; font-weight: 600;
+    }
+
+    #cargando {
+      position: fixed; inset: 0; z-index: 9998;
+      background: #111; color: #fff;
+      display: none;
+      align-items: center; justify-content: center;
+      text-align: center; padding: 24px;
+      font-size: 1rem;
+    }
+
+    #hint {
+      position: fixed; bottom: 24px; left: 0; right: 0;
+      z-index: 50; text-align: center; color: #fff;
+      font-size: .9rem; text-shadow: 0 1px 4px rgba(0,0,0,.8);
+      pointer-events: none; transition: opacity .4s;
+    }
+
+    #titulo {
+      position: fixed; top: 24px; left: 0; right: 0;
+      z-index: 50; text-align: center; color: #fff;
+      font-size: 1.1rem; font-weight: 600; letter-spacing: .02em;
+      text-shadow: 0 1px 6px rgba(0,0,0,.9);
+      pointer-events: none; opacity: 0; transition: opacity .4s;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="intro">
+    <h1>Blanco Books Editorial</h1>
+    <p>Apunta la camara hacia uno de los cuadros para ver como cobra vida.</p>
+    <button id="startBtn">Activar camara</button>
+  </div>
+
+  <div id="cargando">Preparando la camara...</div>
+
+  <div id="titulo"></div>
+  <div id="hint">Apunta al cuadro</div>
+
+  <a-scene
+    mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: no; uiError: no; uiScanning: no; filterMinCF: 0.0001; filterBeta: 0.01; warmupTolerance: 5; missTolerance: 5"
+    color-space="sRGB"
+    renderer="colorManagement: true, physicallyCorrectLights; alpha: true; antialias: true"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false"
+    loading-screen="enabled: false">
+
+    <a-assets>
+      <video id="v0" src="./videos/anatomia-isla.mp4" preload="auto"
+             loop playsinline webkit-playsinline crossorigin="anonymous"></video>
+      <video id="v1" src="./videos/seths-dreams.mp4" preload="auto"
+             loop playsinline webkit-playsinline crossorigin="anonymous"></video>
+    </a-assets>
+
+    <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse" active="true"></a-camera>
+
+    <!-- 0 - Anatomia de una Isla (horizontal) -->
+    <a-entity mindar-image-target="targetIndex: 0" data-titulo="Anatomia de una Isla">
+      <a-video src="#v0" position="0 0 0" height="0.75" width="1" rotation="0 0 0"></a-video>
+    </a-entity>
+
+    <!-- 1 - Seths Dreams (vertical) -->
+    <a-entity mindar-image-target="targetIndex: 1" data-titulo="Seths Dreams">
+      <a-video src="#v1" position="0 0 0" height="1.333" width="1" rotation="0 0 0"></a-video>
+    </a-entity>
+
+  </a-scene>
+
+  <script>
+    var sceneEl = document.querySelector('a-scene');
+    var hint = document.getElementById('hint');
+    var titulo = document.getElementById('titulo');
+    var cargando = document.getElementById('cargando');
+
+    document.getElementById('startBtn').addEventListener('click', async function () {
+      document.getElementById('intro').style.display = 'none';
+      cargando.style.display = 'flex';
+
+      // Desbloquea el audio aprovechando el toque del usuario (iOS)
+      document.querySelectorAll('video').forEach(function (v) {
+        v.muted = false;
+        v.volume = 1;
+      });
+
+      var system = sceneEl.systems['mindar-image-system'];
+      try {
+        await system.start();
+        cargando.style.display = 'none';
+      } catch (e) {
+        cargando.innerHTML = 'No se pudo abrir la camara.<br>Revisa los permisos del navegador y recarga la pagina.';
+      }
+    });
+
+    sceneEl.addEventListener('loaded', function () {
+      document.querySelectorAll('[mindar-image-target]').forEach(function (target) {
+        var videoEl = target.querySelector('a-video');
+        var video = document.querySelector(videoEl.getAttribute('src'));
+        var nombre = target.getAttribute('data-titulo');
+
+        target.addEventListener('targetFound', function () {
+          hint.style.opacity = '0';
+          titulo.textContent = nombre;
+          titulo.style.opacity = '1';
+          video.currentTime = 0;
+          video.play().catch(function () {});
+        });
+
+        target.addEventListener('targetLost', function () {
+          hint.style.opacity = '1';
+          titulo.style.opacity = '0';
+          video.pause();
+        });
+      });
+    });
+  </script>
+
+</body>
+</html>
