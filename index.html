@@ -66,6 +66,7 @@
 
 <body>
 
+  <!-- Pantalla de inicio para el cliente -->
   <div id="startScreen">
 
     <h1>Blanco Books Editorial</h1>
@@ -85,6 +86,7 @@
 
   </div>
 
+  <!-- Instrucciones mientras busca -->
   <div id="instructions">
     Apunta la camara a uno de los cuadros
   </div>
@@ -103,7 +105,7 @@
         id="videoIsla"
         src="./videos/anatomia-isla.mp4"
         preload="auto"
-        loop muted
+        loop
         playsinline
         webkit-playsinline>
       </video>
@@ -112,7 +114,7 @@
         id="videoSeths"
         src="./videos/seths-dreams.mp4"
         preload="auto"
-        loop muted
+        loop
         playsinline
         webkit-playsinline>
       </video>
@@ -121,7 +123,7 @@
         id="videoLunatico"
         src="./videos/lunatico.mp4"
         preload="auto"
-        loop muted
+        loop
         playsinline
         webkit-playsinline>
       </video>
@@ -130,7 +132,7 @@
         id="videoCielo"
         src="./videos/desplegando-cielo.mp4"
         preload="auto"
-        loop muted
+        loop
         playsinline
         webkit-playsinline>
       </video>
@@ -139,7 +141,7 @@
         id="videoNacimiento"
         src="./videos/nacimiento.mp4"
         preload="auto"
-        loop muted
+        loop
         playsinline
         webkit-playsinline>
       </video>
@@ -264,19 +266,46 @@
 
 
       /*
-       * Todos los videos quedan silenciados.
-       * El toque del cliente solo da permiso al navegador
-       * para arrancar la reproduccion.
+       * El toque del cliente es lo que da permiso al navegador
+       * para reproducir audio.
+       *
+       * Orden correcto para movil (iOS):
+       *   1. Arrancar cada video ya silenciado. Esto el navegador
+       *      SIEMPRE lo permite, incluso sin gesto.
+       *   2. Destapar el audio todavia dentro del mismo gesto.
+       *   3. Rebobinar y pausar, dejando la experiencia lista.
+       *
+       * Hacerlo al reves (reproducir con sonido y esperar permiso)
+       * es lo que hace que iOS bloquee el audio en silencio.
        */
-      startButton.addEventListener("click", () => {
+      startButton.addEventListener("click", async () => {
 
         experienceStarted = true;
 
+        // 1. Reproduccion silenciada: siempre permitida.
+        for (const v of videos) {
+          if (!v) continue;
+          v.muted = true;
+          try {
+            await v.play();
+          } catch (error) {
+            console.log("Arranque silenciado:", error);
+          }
+        }
+
+        // 2. Destapar el audio dentro del mismo gesto.
         videos.forEach(function (v) {
           if (!v) return;
-          v.muted = true;
-          v.volume = 0;
+          v.muted = false;
+          v.volume = 1;
         });
+
+        // 3. Rebobinar y pausar.
+        for (const v of videos) {
+          if (!v) continue;
+          v.pause();
+          v.currentTime = 0;
+        }
 
         startScreen.style.display = "none";
         instructions.style.display = "block";
@@ -296,6 +325,9 @@
           instructions.style.display = "none";
 
           if (experienceStarted) {
+
+            par.video.muted = false;
+            par.video.volume = 1;
 
             par.video.play().catch(error => {
               console.log("Video playback:", error);
