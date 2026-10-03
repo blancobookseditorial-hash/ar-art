@@ -119,6 +119,33 @@
         webkit-playsinline>
       </video>
 
+      <video
+        id="videoLunatico"
+        src="./videos/lunatico.mp4"
+        preload="auto"
+        loop
+        playsinline
+        webkit-playsinline>
+      </video>
+
+      <video
+        id="videoCielo"
+        src="./videos/desplegando-cielo.mp4"
+        preload="auto"
+        loop
+        playsinline
+        webkit-playsinline>
+      </video>
+
+      <video
+        id="videoNacimiento"
+        src="./videos/nacimiento.mp4"
+        preload="auto"
+        loop
+        playsinline
+        webkit-playsinline>
+      </video>
+
     </a-assets>
 
 
@@ -143,13 +170,58 @@
     </a-entity>
 
 
-    <!-- 1 - Seths Dreams (vertical) -->
+    <!-- 1 - Seths Dreams (horizontal) -->
     <a-entity
       id="targetSeths"
       mindar-image-target="targetIndex: 1">
 
       <a-video
         src="#videoSeths"
+        position="0 0 0.01"
+        width="1"
+        height="0.75">
+      </a-video>
+
+    </a-entity>
+
+
+    <!-- 2 - Lunatico (vertical) -->
+    <a-entity
+      id="targetLunatico"
+      mindar-image-target="targetIndex: 2">
+
+      <a-video
+        src="#videoLunatico"
+        position="0 0 0.01"
+        width="1"
+        height="1.25">
+      </a-video>
+
+    </a-entity>
+
+
+    <!-- 3 - Desplegando el Cielo (vertical) -->
+    <a-entity
+      id="targetCielo"
+      mindar-image-target="targetIndex: 3">
+
+      <a-video
+        src="#videoCielo"
+        position="0 0 0.01"
+        width="1"
+        height="1.25">
+      </a-video>
+
+    </a-entity>
+
+
+    <!-- 4 - El Nacimiento (vertical) -->
+    <a-entity
+      id="targetNacimiento"
+      mindar-image-target="targetIndex: 4">
+
+      <a-video
+        src="#videoNacimiento"
         position="0 0 0.01"
         width="1"
         height="1.25">
@@ -164,17 +236,21 @@
 
     document.addEventListener("DOMContentLoaded", () => {
 
-      const videoIsla =
-        document.querySelector("#videoIsla");
+      const videos = [
+        document.querySelector("#videoIsla"),
+        document.querySelector("#videoSeths"),
+        document.querySelector("#videoLunatico"),
+        document.querySelector("#videoCielo"),
+        document.querySelector("#videoNacimiento")
+      ];
 
-      const videoSeths =
-        document.querySelector("#videoSeths");
-
-      const targetIsla =
-        document.querySelector("#targetIsla");
-
-      const targetSeths =
-        document.querySelector("#targetSeths");
+      const pares = [
+        { target: document.querySelector("#targetIsla"),       video: document.querySelector("#videoIsla") },
+        { target: document.querySelector("#targetSeths"),      video: document.querySelector("#videoSeths") },
+        { target: document.querySelector("#targetLunatico"),   video: document.querySelector("#videoLunatico") },
+        { target: document.querySelector("#targetCielo"),      video: document.querySelector("#videoCielo") },
+        { target: document.querySelector("#targetNacimiento"), video: document.querySelector("#videoNacimiento") }
+      ];
 
       const startButton =
         document.querySelector("#startButton");
@@ -197,38 +273,25 @@
 
         experienceStarted = true;
 
-        videoIsla.muted = false;
-        videoIsla.volume = 1;
-
-        videoSeths.muted = false;
-        videoSeths.volume = 1;
+        videos.forEach(function (v) {
+          if (!v) return;
+          v.muted = false;
+          v.volume = 1;
+        });
 
         /*
          * Arranca y pausa cada video de inmediato.
          * Esto desbloquea el audio en movil.
          */
-        try {
-
-          await videoIsla.play();
-          videoIsla.pause();
-          videoIsla.currentTime = 0;
-
-        } catch (error) {
-
-          console.log("Audio unlock (isla):", error);
-
-        }
-
-        try {
-
-          await videoSeths.play();
-          videoSeths.pause();
-          videoSeths.currentTime = 0;
-
-        } catch (error) {
-
-          console.log("Audio unlock (seths):", error);
-
+        for (const v of videos) {
+          if (!v) continue;
+          try {
+            await v.play();
+            v.pause();
+            v.currentTime = 0;
+          } catch (error) {
+            console.log("Audio unlock:", error);
+          }
         }
 
         startScreen.style.display = "none";
@@ -238,57 +301,35 @@
 
 
       /*
-       * Obra reconocida: Anatomia de una Isla
+       * Cada obra: reconocida y perdida
        */
-      targetIsla.addEventListener("targetFound", () => {
+      pares.forEach(function (par) {
 
-        instructions.style.display = "none";
+        if (!par.target || !par.video) return;
 
-        if (experienceStarted) {
+        par.target.addEventListener("targetFound", () => {
 
-          videoIsla.play().catch(error => {
-            console.log("Video isla:", error);
-          });
+          instructions.style.display = "none";
 
-        }
+          if (experienceStarted) {
 
-      });
+            par.video.play().catch(error => {
+              console.log("Video playback:", error);
+            });
 
-      targetIsla.addEventListener("targetLost", () => {
+          }
 
-        videoIsla.pause();
+        });
 
-        if (experienceStarted) {
-          instructions.style.display = "block";
-        }
+        par.target.addEventListener("targetLost", () => {
 
-      });
+          par.video.pause();
 
+          if (experienceStarted) {
+            instructions.style.display = "block";
+          }
 
-      /*
-       * Obra reconocida: Seths Dreams
-       */
-      targetSeths.addEventListener("targetFound", () => {
-
-        instructions.style.display = "none";
-
-        if (experienceStarted) {
-
-          videoSeths.play().catch(error => {
-            console.log("Video seths:", error);
-          });
-
-        }
-
-      });
-
-      targetSeths.addEventListener("targetLost", () => {
-
-        videoSeths.pause();
-
-        if (experienceStarted) {
-          instructions.style.display = "block";
-        }
+        });
 
       });
 
