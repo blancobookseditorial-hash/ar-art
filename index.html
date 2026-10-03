@@ -7,8 +7,8 @@
 
   <title>Blanco Books Editorial | Galeria AR</title>
 
-  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <script src="[aframe.io](https://aframe.io/releases/1.4.2/aframe.min.js)"></script>
+  <script src="[cdn.jsdelivr.net](https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js)"></script>
 
   <style>
     body {
@@ -66,7 +66,6 @@
 
 <body>
 
-  <!-- Pantalla de inicio para el cliente -->
   <div id="startScreen">
 
     <h1>Blanco Books Editorial</h1>
@@ -86,7 +85,6 @@
 
   </div>
 
-  <!-- Instrucciones mientras busca -->
   <div id="instructions">
     Apunta la camara a uno de los cuadros
   </div>
@@ -105,7 +103,7 @@
         id="videoIsla"
         src="./videos/anatomia-isla.mp4"
         preload="auto"
-        loop
+        loop muted
         playsinline
         webkit-playsinline>
       </video>
@@ -114,7 +112,7 @@
         id="videoSeths"
         src="./videos/seths-dreams.mp4"
         preload="auto"
-        loop
+        loop muted
         playsinline
         webkit-playsinline>
       </video>
@@ -123,7 +121,7 @@
         id="videoLunatico"
         src="./videos/lunatico.mp4"
         preload="auto"
-        loop
+        loop muted
         playsinline
         webkit-playsinline>
       </video>
@@ -132,7 +130,7 @@
         id="videoCielo"
         src="./videos/desplegando-cielo.mp4"
         preload="auto"
-        loop
+        loop muted
         playsinline
         webkit-playsinline>
       </video>
@@ -141,7 +139,7 @@
         id="videoNacimiento"
         src="./videos/nacimiento.mp4"
         preload="auto"
-        loop
+        loop muted
         playsinline
         webkit-playsinline>
       </video>
@@ -266,33 +264,19 @@
 
 
       /*
-       * El toque del cliente da permiso al navegador
-       * para reproducir audio.
+       * Todos los videos quedan silenciados.
+       * El toque del cliente solo da permiso al navegador
+       * para arrancar la reproduccion.
        */
-      startButton.addEventListener("click", async () => {
+      startButton.addEventListener("click", () => {
 
         experienceStarted = true;
 
         videos.forEach(function (v) {
           if (!v) return;
-          v.muted = false;
-          v.volume = 1;
+          v.muted = true;
+          v.volume = 0;
         });
-
-        /*
-         * Arranca y pausa cada video de inmediato.
-         * Esto desbloquea el audio en movil.
-         */
-        for (const v of videos) {
-          if (!v) continue;
-          try {
-            await v.play();
-            v.pause();
-            v.currentTime = 0;
-          } catch (error) {
-            console.log("Audio unlock:", error);
-          }
-        }
 
         startScreen.style.display = "none";
         instructions.style.display = "block";
