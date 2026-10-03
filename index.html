@@ -61,6 +61,27 @@
       max-width: 400px;
       display: none;
     }
+
+    /*
+     * Aviso que se muestra una sola vez.
+     * Da al cliente un toque limpio sobre la pantalla,
+     * que es lo que iOS acepta como permiso de audio.
+     */
+    #soundPrompt {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 14px 24px;
+      border-radius: 30px;
+      font-size: 15px;
+      text-align: center;
+      display: none;
+      cursor: pointer;
+    }
   </style>
 </head>
 
@@ -89,6 +110,11 @@
   <!-- Instrucciones mientras busca -->
   <div id="instructions">
     Apunta la camara a uno de los cuadros
+  </div>
+
+  <!-- Aviso de sonido (una sola vez) -->
+  <div id="soundPrompt">
+    Toca aqui para activar el sonido
   </div>
 
 
@@ -261,28 +287,33 @@
       const instructions =
         document.querySelector("#instructions");
 
+      const soundPrompt =
+        document.querySelector("#soundPrompt");
+
 
       let experienceStarted = false;
+      let soundUnlocked = false;
 
 
       /*
-       * El toque del cliente es lo que da permiso al navegador
-       * para reproducir audio.
+       * Desbloqueo de audio para iOS.
        *
-       * Orden correcto para movil (iOS):
-       *   1. Arrancar cada video ya silenciado. Esto el navegador
-       *      SIEMPRE lo permite, incluso sin gesto.
-       *   2. Destapar el audio todavia dentro del mismo gesto.
-       *   3. Rebobinar y pausar, dejando la experiencia lista.
+       * Safari solo libera el sonido de un video cuando la
+       * reproduccion nace de un toque REAL sobre la pantalla.
        *
-       * Hacerlo al reves (reproducir con sonido y esperar permiso)
-       * es lo que hace que iOS bloquee el audio en silencio.
+       * MindAR pausa y reanuda los videos por su cuenta al
+       * reconocer o perder un cuadro, y esa reanudacion no
+       * cuenta como gesto. Por eso el video se ve pero no suena.
+       *
+       * Aqui se arranca cada video silenciado (siempre permitido),
+       * se destapa el audio y se pausa, todo dentro del mismo
+       * toque. A partir de ahi los videos conservan el permiso.
        */
-      startButton.addEventListener("click", async () => {
+      async function unlockSound() {
 
-        experienceStarted = true;
+        if (soundUnlocked) return;
+        soundUnlocked = true;
 
-        // 1. Reproduccion silenciada: siempre permitida.
         for (const v of videos) {
           if (!v) continue;
           v.muted = true;
@@ -293,23 +324,54 @@
           }
         }
 
-        // 2. Destapar el audio dentro del mismo gesto.
         videos.forEach(function (v) {
           if (!v) return;
           v.muted = false;
           v.volume = 1;
         });
 
-        // 3. Rebobinar y pausar.
         for (const v of videos) {
           if (!v) continue;
           v.pause();
           v.currentTime = 0;
         }
 
+        if (soundPrompt) {
+          soundPrompt.style.display = "none";
+        }
+      }
+
+
+      /*
+       * 1. El boton inicia la experiencia y pide el primer toque.
+       */
+      startButton.addEventListener("click", async () => {
+
+        experienceStarted = true;
+
+        await unlockSound();
+
         startScreen.style.display = "none";
         instructions.style.display = "block";
 
+        if (!soundUnlocked && soundPrompt) {
+          soundPrompt.style.display = "block";
+        }
+
+      });
+
+
+      /*
+       * 2. Red de seguridad: cualquier toque posterior sobre la
+       *    pantalla vuelve a destapar el audio. Es lo que salva
+       *    los casos en que Safari bloquea la reanudacion.
+       */
+      document.body.addEventListener("touchstart", () => {
+        if (experienceStarted) unlockSound();
+      }, { passive: true });
+
+      document.body.addEventListener("click", () => {
+        if (experienceStarted) unlockSound();
       });
 
 
