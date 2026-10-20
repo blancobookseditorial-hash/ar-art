@@ -1,3 +1,76 @@
 {
-  "records": []
+  "records": [
+    {
+      "work": "A Dream of Wings",
+      "edition": "00117102026",
+      "format": "Acrylic",
+      "status": "registered"
+    },
+    {
+      "work": "Moon Walker",
+      "edition": "BAH-MW-001",
+      "format": "Jacket",
+      "status": "registered"
+    },
+    {
+      "work": "Moon Walker",
+      "edition": "00217102026",
+      "format": "Jacket",
+      "status": "registered"
+    },
+    {
+      "work": "Moon Walker",
+      "edition": "00317102026",
+      "format": "Jacket",
+      "status": "registered"
+    },
+    {
+      "work": "Dress Stories",
+      "edition": "BAH-TH-001",
+      "format": "No especificado",
+      "status": "registered"
+    },
+    {
+      "work": "Dress Stories",
+      "edition": "BAH-TH-002",
+      "format": "No especificado",
+      "status": "registered"
+    },
+    {
+      "work": "Dress Stories",
+      "edition": "BAH-TH-003",
+      "format": "Jackets",
+      "status": "registered"
+    },
+    {
+      "work": "Dress Stories",
+      "edition": "00417102026",
+      "format": "Jacket",
+      "status": "registered"
+    },
+    {
+      "work": "Birth of Being",
+      "edition": "00117102026",
+      "format": "Acrylic",
+      "status": "registered"
+    },
+    {
+      "work": "Birth of Being",
+      "edition": "00217102026",
+      "format": "shirt",
+      "status": "registered"
+    },
+    {
+      "work": "Unflding the Sky",
+      "edition": "00118102026",
+      "format": "Acrylic",
+      "status": "registered"
+    },
+    {
+      "work": "El Lunatico",
+      "edition": "00118102026",
+      "format": "Acrylic",
+      "status": "registered"
+    }
+  ]
 }
