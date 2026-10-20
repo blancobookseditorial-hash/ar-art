@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Consulta el registro de reproducciones de Blanco Art House." />
+  <title>Registro de autenticidad | Blanco Art House</title>
+  <style>
+    :root{color-scheme:light;font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;background:#f8f7f3;color:#202020}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px}main{width:min(100%,540px);background:white;padding:36px;border:1px solid #dedbd5;border-radius:18px;box-shadow:0 12px 36px #0000000a}small{letter-spacing:.2em;text-transform:uppercase;color:#777}h1{font-size:1.7rem;margin:12px 0 4px}p{line-height:1.55;color:#555}label{display:block;font-weight:600;margin:18px 0 6px}input,select{width:100%;border:1px solid #aaa;border-radius:8px;font:inherit;padding:12px;background:white}button{background:#222;color:white;border:0;border-radius:8px;width:100%;padding:13px;margin-top:22px;font:inherit;cursor:pointer}button:hover{background:#444}#result{margin-top:24px;border-radius:9px;padding:16px;display:none;background:#f2f2ef}#result[data-kind=found]{background:#edf7ef}#result[data-kind=missing]{background:#fff5ea}.note{font-size:.81rem}a{color:inherit}
+  </style>
+</head>
+<body>
+<main>
+  <small>Blanco Art House · Registro oficial</small>
+  <h1>Verifica tu reproducción</h1>
+  <p>Busca por título, número de edición y formato. La consulta confirma si existe un registro coincidente emitido por Blanco Art House.</p>
+  <form id="lookup">
+    <label for="work">Obra</label><select id="work" required><option value="">Selecciona una obra</option></select>
+    <label for="edition">Número de edición</label><input id="edition" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" placeholder="Ej. 7" required />
+    <label for="format">Material y tamaño</label><select id="format" required><option value="">Selecciona primero una obra</option></select>
+    <button>Consultar registro</button>
+  </form>
+  <section id="result" role="status" aria-live="polite"></section>
+  <p class="note">Un resultado registrado confirma la existencia de una entrada en el archivo del artista, no autentica físicamente cualquier objeto que reproduzca sus datos. Los datos privados de compradores no se muestran.</p>
+  <p class="note"><a href="/">Volver a la galería AR</a></p>
+</main>
+<script>
+(async function(){
+ const w=document.querySelector('#work'),f=document.querySelector('#format'),n=document.querySelector('#edition'),r=document.querySelector('#result');
+ const out=(kind,title,desc)=>{r.dataset.kind=kind;r.style.display='block';r.replaceChildren();const strong=document.createElement('strong');strong.textContent=title;const p=document.createElement('p');p.textContent=desc;r.append(strong,p)};
+ let entries=[];
+ try{const res=await fetch('./registry.json',{cache:'no-store'});if(!res.ok)throw Error();const data=await res.json();entries=Array.isArray(data.records)?data.records:[];}catch{out('missing','Registro no disponible','No se pudo consultar el registro. Intenta de nuevo más tarde.');return}
+ const allWorks=[...new Set(entries.map(x=>x.work).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+ for(const name of allWorks){const opt=document.createElement('option');opt.value=name;opt.textContent=name;w.append(opt)}
+ w.addEventListener('change',()=>{f.replaceChildren();const first=document.createElement('option');first.value='';first.textContent='Selecciona material y tamaño';f.append(first);const formats=[...new Set(entries.filter(x=>x.work===w.value).map(x=>x.format).filter(Boolean))].sort();for(const v of formats){const opt=document.createElement('option');opt.value=v;opt.textContent=v;f.append(opt)}r.style.display='none'});
+ document.querySelector('#lookup').addEventListener('submit',e=>{e.preventDefault();const number=Number(n.value);if(!Number.isInteger(number)||number<1||number>100){out('missing','Número incorrecto','La numeración debe estar entre 1 y 100.');return}const record=entries.find(x=>x.work===w.value&&x.format===f.value&&Number(x.number)===number&&x.status==='registered');if(record){out('found','Reproducción registrada',`${record.work} · ${String(number).padStart(3,'0')}/100 · ${record.format}. Registro emitido por Blanco Art House.`)}else{out('missing','No se encontró registro','No existe una entrada publicada con esta combinación. Esto no demuestra por sí solo que la reproducción sea falsa; consulta al artista.')}})
+})();
+</script>
+</body>
+</html>
