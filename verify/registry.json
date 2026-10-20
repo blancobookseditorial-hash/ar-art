@@ -4,73 +4,85 @@
       "work": "A Dream of Wings",
       "edition": "00117102026",
       "format": "Acrylic",
-      "status": "registered"
+      "status": "registered",
+      "image": "/artwork-images/a-dream-of-wings-acrylic.jpg"
     },
     {
       "work": "Moon Walker",
       "edition": "BAH-MW-001",
       "format": "Jacket",
-      "status": "registered"
+      "status": "registered",
+      "image": "/artwork-images/moon-walker-jacket.jpg"
     },
     {
       "work": "Moon Walker",
       "edition": "00217102026",
       "format": "Jacket",
-      "status": "registered"
+      "status": "registered",
+      "image": "/artwork-images/moon-walker-jacket.jpg"
     },
     {
       "work": "Moon Walker",
       "edition": "00317102026",
       "format": "Jacket",
-      "status": "registered"
+      "status": "registered",
+      "image": "/artwork-images/moon-walker-jacket.jpg"
     },
     {
       "work": "Dress Stories",
       "edition": "BAH-TH-001",
-      "format": "No especificado",
-      "status": "registered"
+      "format": "Jacket",
+      "status": "registered",
+      "image": "/artwork-images/dress-stories-jacket.jpg"
     },
     {
       "work": "Dress Stories",
       "edition": "BAH-TH-002",
-      "format": "No especificado",
-      "status": "registered"
+      "format": "Jacket",
+      "status": "registered",
+      "image": "/artwork-images/dress-stories-jacket.jpg"
     },
     {
       "work": "Dress Stories",
       "edition": "BAH-TH-003",
-      "format": "Jackets",
-      "status": "registered"
+      "format": "Jacket",
+      "status": "registered",
+      "image": "/artwork-images/dress-stories-jacket.jpg"
     },
     {
       "work": "Dress Stories",
       "edition": "00417102026",
       "format": "Jacket",
-      "status": "registered"
+      "status": "registered",
+      "image": "/artwork-images/dress-stories-jacket.jpg"
     },
     {
       "work": "Birth of Being",
       "edition": "00117102026",
       "format": "Acrylic",
-      "status": "registered"
+      "status": "registered",
+      "image": "/artwork-images/birth-of-being-acrylic.jpg"
     },
     {
       "work": "Birth of Being",
       "edition": "00217102026",
       "format": "shirt",
-      "status": "registered"
+      "status": "registered",
+      "image": "/artwork-images/birth-of-being-shirt.jpg"
     },
     {
       "work": "Unflding the Sky",
       "edition": "00118102026",
       "format": "Acrylic",
-      "status": "registered"
+      "status": "registered",
+      "image": "/artwork-images/unfolding-the-sky-acrylic.jpg"
     },
     {
       "work": "El Lunatico",
       "edition": "00118102026",
       "format": "Acrylic",
-      "status": "registered"
+      "status": "registered",
+      "image": "/artwork-images/el-lunatico-acrylic.jpg"
     }
   ]
 }

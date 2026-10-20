@@ -5,7 +5,7 @@
 <meta name="description" content="Verify registered limited-edition artwork certificates from Blanco Art House.">
 <title>Artwork Certificate Verification | Blanco Art House</title>
 <style>
-:root{color-scheme:light;font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;background:#f8f7f3;color:#202020}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px}main{width:min(100%,560px);background:#fff;padding:clamp(20px,5vw,36px);border:1px solid #dedbd5;border-radius:18px;box-shadow:0 12px 36px #0000000a}small{letter-spacing:.16em;text-transform:uppercase;color:#777}h1{font-size:1.65rem;margin:12px 0 4px}p{line-height:1.55;color:#555}label{display:block;font-weight:600;margin:18px 0 6px}input,select{width:100%;border:1px solid #aaa;border-radius:8px;font:inherit;padding:12px;background:white}button{background:#222;color:white;border:0;border-radius:8px;width:100%;padding:13px;margin-top:22px;font:inherit;cursor:pointer}button:hover{background:#444}button:disabled{opacity:.5;cursor:wait}#result{margin-top:24px;border-radius:9px;padding:16px;display:none;background:#f2f2ef}#result[data-kind=found]{background:#edf7ef}#result[data-kind=missing]{background:#fff5ea}.note{font-size:.81rem}a{color:inherit}
+:root{color-scheme:light;font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;background:#f8f7f3;color:#202020}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px}main{width:min(100%,640px);background:#fff;padding:clamp(20px,5vw,36px);border:1px solid #dedbd5;border-radius:18px;box-shadow:0 12px 36px #0000000a}small{letter-spacing:.16em;text-transform:uppercase;color:#777}h1{font-size:1.65rem;margin:12px 0 4px}p{line-height:1.55;color:#555}label{display:block;font-weight:600;margin:18px 0 6px}input,select{width:100%;border:1px solid #aaa;border-radius:8px;font:inherit;padding:12px;background:white}button{background:#222;color:white;border:0;border-radius:8px;width:100%;padding:13px;margin-top:22px;font:inherit;cursor:pointer}button:hover{background:#444}button:disabled{opacity:.5;cursor:wait}#result{margin-top:24px;border-radius:12px;padding:16px;display:none;background:#f2f2ef}#result[data-kind=found]{background:#edf7ef;border:1px solid #cfe2d1}#result[data-kind=missing]{background:#fff5ea;border:1px solid #f0deca}.note{font-size:.81rem}a{color:inherit}.result-title{display:block;font-size:1.05rem;margin-bottom:8px}.detail{margin:.35rem 0;color:#2f2f2f}.image-card{margin-top:16px;background:#fff;border:1px solid #ddd8cf;border-radius:12px;overflow:hidden}.image-card img{display:block;width:100%;height:auto;max-height:520px;object-fit:cover;background:#f5f5f5}.image-meta{padding:12px 14px}.image-meta strong{display:block;margin-bottom:4px}.badge{display:inline-block;font-size:.74rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#1d5630;background:#d7f1dd;border-radius:999px;padding:6px 9px;margin-bottom:10px}
 </style>
 </head>
 <body>
@@ -32,7 +32,22 @@
 const work=document.querySelector('#work'), format=document.querySelector('#format'),edition=document.querySelector('#edition'),result=document.querySelector('#result'),submit=document.querySelector('#search');
 const clean=v=>String(v??'').trim().replace(/\s+/g,' ').toLocaleLowerCase('en');
 const code=v=>String(v??'').trim().toUpperCase();
-const show=(kind,title,description,details=[])=>{result.dataset.kind=kind;result.style.display='block';result.replaceChildren();const heading=document.createElement('strong');heading.textContent=title;const p=document.createElement('p');p.textContent=description;result.append(heading,p);for(const detail of details){const line=document.createElement('p');line.textContent=detail;result.append(line)}};
+const show=(kind,title,description,details=[],imageRecord=null)=>{
+  result.dataset.kind=kind;result.style.display='block';result.replaceChildren();
+  const heading=document.createElement('strong');heading.className='result-title';heading.textContent=title;
+  const p=document.createElement('p');p.textContent=description;
+  result.append(heading,p);
+  for(const detail of details){const line=document.createElement('p');line.className='detail';line.textContent=detail;result.append(line)}
+  if(kind==='found' && imageRecord && imageRecord.image){
+    const card=document.createElement('div');card.className='image-card';
+    const img=document.createElement('img');img.src=imageRecord.image;img.alt=`${imageRecord.work} - ${imageRecord.format}`;
+    const meta=document.createElement('div');meta.className='image-meta';
+    const badge=document.createElement('span');badge.className='badge';badge.textContent='Registered Artwork';
+    const titleLine=document.createElement('strong');titleLine.textContent=imageRecord.work;
+    const sub=document.createElement('div');sub.textContent=`Format: ${imageRecord.format} · Certificate: ${imageRecord.edition}`;
+    meta.append(badge,titleLine,sub);card.append(img,meta);result.append(card);
+  }
+};
 const option=(select,value,label)=>{const o=document.createElement('option');o.value=value;o.textContent=label;select.append(o)};
 let records=[];
 try{
@@ -46,7 +61,7 @@ try{
 }catch(error){work.replaceChildren();option(work,'','Registry unavailable');show('missing','Registry unavailable','Please try again later.');return}
 work.addEventListener('change',()=>{format.replaceChildren();option(format,'','Any format');[...new Set(records.filter(r=>r.work===work.value).map(r=>r.format))].sort((a,b)=>a.localeCompare(b,'en')).forEach(v=>option(format,v,v));result.style.display='none'});
 edition.addEventListener('input',()=>result.style.display='none');format.addEventListener('change',()=>result.style.display='none');
-document.querySelector('#lookup').addEventListener('submit',event=>{event.preventDefault();const matches=records.filter(r=>r.work===work.value&&code(r.edition)===code(edition.value)&&(format.value===''||clean(r.format)===clean(format.value)));if(matches.length===1){const found=matches[0];show('found','Certificate registered','This edition is listed in the official Blanco Art House registry.',[`Artwork: ${found.work}`,`Edition code: ${found.edition}`,`Registered format: ${found.format}`]);}else if(matches.length>1){show('missing','Multiple matching records','More than one record matches. Select a format or contact Blanco Art House.')}else{show('missing','No matching record found','Please check the artwork title and edition code, or contact the artist.')}});
+document.querySelector('#lookup').addEventListener('submit',event=>{event.preventDefault();const matches=records.filter(r=>r.work===work.value&&code(r.edition)===code(edition.value)&&(format.value===''||clean(r.format)===clean(format.value)));if(matches.length===1){const found=matches[0];show('found','Certificate registered','This edition is listed in the official Blanco Art House registry.',[`Artwork: ${found.work}`,`Edition code: ${found.edition}`,`Registered format: ${found.format}`],found);}else if(matches.length>1){show('missing','Multiple matching records','More than one record matches. Select a format or contact Blanco Art House.')}else{show('missing','No matching record found','Please check the artwork title and edition code, or contact the artist.')}});
 })();
 </script>
 </body>
