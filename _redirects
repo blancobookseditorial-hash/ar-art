@@ -1,0 +1,8 @@
+# Route the homepage to a separate welcome page without editing the original AR index.html.
+/ /home/index.html 200!
+# Keep the original AR HTML untouched, serving it at /ar/.
+/ar/ /index.html 200!
+# The original AR HTML uses relative asset URLs; map them back to the original paths.
+/ar/targets.mind /targets.mind 200
+/ar/videos/* /videos/:splat 200
+/ar/img/* /img/:splat 200
