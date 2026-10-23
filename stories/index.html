@@ -10,7 +10,7 @@
 <style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent;font-family:Arial,sans-serif;color:white}
 #top{position:fixed;z-index:30;top:max(10px,env(safe-area-inset-top));left:10px;right:10px;text-align:center;pointer-events:none}
-#question{display:inline-block;max-width:540px;background:rgba(14,31,51,.9);border:1px solid #e2cb93;border-radius:16px;padding:11px 15px;font-size:clamp(14px,3.5vw,18px);font-weight:bold;line-height:1.4}
+#question{display:inline-block;max-width:540px;background:rgba(14,31,51,.9);border:1px solid #e2cb93;border-radius:18px;padding:16px 18px;font-size:clamp(21px,5.3vw,30px);font-weight:800;line-height:1.35;text-wrap:balance;letter-spacing:.1px}
 #progress{display:block;width:max-content;margin:8px auto;padding:7px 12px;background:rgba(14,31,51,.85);border-radius:20px;font-weight:bold;font-size:14px}
 #bottom{position:fixed;z-index:30;bottom:max(12px,env(safe-area-inset-bottom));left:10px;right:10px;display:flex;justify-content:space-between;align-items:end;gap:8px}
 #status{font-size:13px;max-width:60%;line-height:1.45;padding:10px 12px;background:rgba(14,31,51,.88);border-radius:13px}
@@ -20,13 +20,30 @@
 #celebration{position:fixed;inset:0;z-index:31;pointer-events:none;overflow:hidden}
 .sparkle{position:absolute;left:0;top:0;will-change:transform,opacity;animation:burst 1100ms ease-out forwards;filter:drop-shadow(0 1px 3px #0005);font-size:clamp(18px,4vw,30px)}
 @keyframes burst{0%{transform:translate(-50%,-50%) scale(.35) rotate(0);opacity:0}15%{opacity:1}80%{opacity:1}100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(.85) rotate(var(--spin));opacity:0}}
-@media(prefers-reduced-motion:reduce){.sparkle{animation-duration:250ms}}
+#finishScreen{position:fixed;inset:0;z-index:45;display:flex;align-items:center;justify-content:center;padding:22px;background:rgba(10,26,47,.80);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+#finishScreen[hidden]{display:none}
+#finishCard{width:min(94vw,430px);padding:32px 24px 28px;border:2px solid #e2cb93;border-radius:26px;background:linear-gradient(155deg,#fff8e8,#ffecc5);color:#15364b;text-align:center;box-shadow:0 18px 55px rgba(0,0,0,.35);animation:appear .45s ease-out both}
+#finishIcon{font-size:54px;margin-bottom:10px}
+#finishTitle{font-size:clamp(27px,7vw,38px);font-weight:900;line-height:1.15;margin:0 0 12px}
+#finishText{font-size:clamp(17px,4.5vw,21px);line-height:1.4;margin:0 0 24px}
+#replay{font-size:clamp(20px,5.4vw,24px);padding:16px 24px;border-radius:17px;background:#17436a;color:#fff;width:100%;min-height:58px;box-shadow:0 5px 0 #0b2942}
+#replay:active{transform:translateY(3px);box-shadow:0 2px 0 #0b2942}
+@keyframes appear{from{opacity:0;transform:scale(.85) translateY(16px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@media(prefers-reduced-motion:reduce){.sparkle{animation-duration:250ms}#finishCard{animation:none}}
 </style>
 </head>
 <body>
 <div id="top"><div id="question">¿Puedes encontrar un corazón y tres aviones de papel?</div><div id="progress">❤️ 0 de 1 · ✈️ 0 de 3</div></div>
 <div id="celebration" aria-hidden="true"></div>
 <div id="congrats" role="status" aria-live="polite">¡Muy bien! ⭐</div>
+<div id="finishScreen" role="dialog" aria-modal="true" aria-labelledby="finishTitle" hidden>
+  <div id="finishCard">
+    <div id="finishIcon" aria-hidden="true">🎉⭐🎉</div>
+    <h2 id="finishTitle">¡Lo lograste!</h2>
+    <p id="finishText">¡Encontraste el corazón y los tres aviones de papel!</p>
+    <button type="button" id="replay">↻ Volver a jugar</button>
+  </div>
+</div>
 <div id="bottom"><div id="status">Preparando cámara AR…</div><div id="controls"><button id="music" type="button">♫ Activar música</button><button id="reset" type="button">↻ Reiniciar</button></div></div>
 <a-scene id="scene"
   mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 1;"
@@ -47,7 +64,7 @@
 <script>
 const byId = id => document.getElementById(id);
 const selected = new Set();
-let visible = false, messageTimer;
+let visible = false, messageTimer, finishTimer = null, gameFinished = false;
 let audioContext = null, musicTimer = null, musicEnabled = false, note = 0;
 // Melodía instrumental suave, creada directamente en el navegador.
 // No requiere plataformas, pistas de terceros ni archivos de audio.
@@ -140,7 +157,7 @@ scene.addEventListener('arError',()=>{byId('status').textContent='No se pudo ini
 const hitRaycaster=new THREE.Raycaster();
 const touchPoint=new THREE.Vector2();
 function registerHit(obj,x,y){
-  if(!visible || selected.has(obj.id))return;
+  if(gameFinished || !visible || selected.has(obj.id))return;
   selected.add(obj.id);
   obj.setAttribute('material','color: #fff2aa; opacity: 0.58; transparent: true; side: double');
   // El primer toque válido desbloquea el sonido en iPhone y comienza la melodía.
@@ -149,8 +166,14 @@ function registerHit(obj,x,y){
   celebrateSound(finished);
   sparkle(x,y,finished);
   if(finished){
+    gameFinished=true;
     byId('status').textContent='¡Has encontrado todos los elementos!';
     say('¡Fantástico! ¡Encontraste todo! 🎉');
+    // La celebración ocupa la pantalla y luego aparece el botón para repetir.
+    setTimeout(()=>sparkle(window.innerWidth/2,window.innerHeight/2,true),360);
+    setTimeout(()=>sparkle(window.innerWidth/2,window.innerHeight/2,true),820);
+    clearTimeout(finishTimer);
+    finishTimer=setTimeout(()=>{byId('finishScreen').hidden=false;},2200);
   }else{
     say('¡Muy bien! ⭐');
   }
@@ -158,7 +181,7 @@ function registerHit(obj,x,y){
 let userMutedMusic=false;
 function detectTouch(event){
   if(event.target.closest && event.target.closest('#top, #bottom, #congrats, button'))return;
-  if(!visible || !scene.renderer || !scene.camera)return;
+  if(gameFinished || !visible || !scene.renderer || !scene.camera)return;
   const canvas=scene.renderer.domElement,rect=canvas.getBoundingClientRect();
   const x=event.clientX,y=event.clientY;
   if(x<rect.left || x>rect.right || y<rect.top || y>rect.bottom)return;
@@ -182,14 +205,19 @@ byId('music').addEventListener('click',()=>{
   if(musicEnabled){userMutedMusic=true;stopMusic()}
   else{userMutedMusic=false;startMusic()}
 });
-byId('reset').addEventListener('click',()=>{
+function resetGame(){
+  clearTimeout(finishTimer);finishTimer=null;gameFinished=false;
+  byId('finishScreen').hidden=true;
+  clearTimeout(messageTimer);
   selected.clear();
   document.querySelectorAll('.hotspot').forEach(obj=>obj.setAttribute('material','color: #ffe29a; opacity: 0.12; transparent: true; side: double'));
   byId('status').textContent=visible?'¡Portada reconocida! Toca los objetos.':'Apunta a la portada del libro.';
   byId('congrats').classList.remove('visible');
   byId('celebration').replaceChildren();
   update();
-});
+}
+byId('reset').addEventListener('click',resetGame);
+byId('replay').addEventListener('click',resetGame);
 window.addEventListener('pagehide',stopMusic);
 </script>
 </body>
