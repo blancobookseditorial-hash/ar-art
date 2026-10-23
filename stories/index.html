@@ -17,12 +17,17 @@
 #controls{display:flex;gap:6px}button{font-size:13px;font-weight:bold;background:#fff0cf;color:#192a43;border:0;padding:11px 12px;border-radius:12px;cursor:pointer}
 #congrats{position:fixed;z-index:32;top:45%;left:50%;transform:translate(-50%,-50%) scale(.85);opacity:0;pointer-events:none;background:#fff0cf;color:#15364b;padding:17px 24px;border-radius:20px;font-size:clamp(24px,5vw,34px);font-weight:bold;text-align:center;box-shadow:0 8px 30px #0008;transition:opacity .15s,transform .15s;max-width:90vw}
 #congrats.visible{opacity:1;transform:translate(-50%,-50%) scale(1)}
+#celebration{position:fixed;inset:0;z-index:31;pointer-events:none;overflow:hidden}
+.sparkle{position:absolute;left:0;top:0;will-change:transform,opacity;animation:burst 1100ms ease-out forwards;filter:drop-shadow(0 1px 3px #0005);font-size:clamp(18px,4vw,30px)}
+@keyframes burst{0%{transform:translate(-50%,-50%) scale(.35) rotate(0);opacity:0}15%{opacity:1}80%{opacity:1}100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(.85) rotate(var(--spin));opacity:0}}
+@media(prefers-reduced-motion:reduce){.sparkle{animation-duration:250ms}}
 </style>
 </head>
 <body>
 <div id="top"><div id="question">¿Puedes encontrar un corazón y tres aviones de papel?</div><div id="progress">❤️ 0 de 1 · ✈️ 0 de 3</div></div>
+<div id="celebration" aria-hidden="true"></div>
 <div id="congrats" role="status" aria-live="polite">¡Muy bien! ⭐</div>
-<div id="bottom"><div id="status">Preparando cámara AR…</div><div id="controls"><button id="music" type="button">♫ Música</button><button id="reset" type="button">↻ Reiniciar</button></div></div>
+<div id="bottom"><div id="status">Preparando cámara AR…</div><div id="controls"><button id="music" type="button">♫ Activar música</button><button id="reset" type="button">↻ Reiniciar</button></div></div>
 <a-scene id="scene"
   mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 1;"
   color-space="sRGB"
@@ -41,85 +46,151 @@
 </a-scene>
 <script>
 const byId = id => document.getElementById(id);
-const selected = new Set();let visible = false;let messageTimer;
-let audioContext = null;let musicTimer = null;let musicEnabled = false;let note = 0;
-const melody = [392,440,523.25,587.33,659.25,587.33,523.25,440,392,349.23,392,440,523.25,392];
-function beep(frequency,volume=.025){
-  if(!audioContext)return;
-  const now=audioContext.currentTime,osc=audioContext.createOscillator(),gain=audioContext.createGain();
-  osc.type='sine';osc.frequency.value=frequency;gain.gain.setValueAtTime(.0001,now);
-  gain.gain.exponentialRampToValueAtTime(volume,now+.03);
-  gain.gain.exponentialRampToValueAtTime(.0001,now+.38);
-  osc.connect(gain).connect(audioContext.destination);osc.start(now);osc.stop(now+.4);
+const selected = new Set();
+let visible = false, messageTimer;
+let audioContext = null, musicTimer = null, musicEnabled = false, note = 0;
+// Melodía instrumental suave, creada directamente en el navegador.
+// No requiere plataformas, pistas de terceros ni archivos de audio.
+const melody = [392, 440, 523.25, 440, 349.23, 392, 493.88, 392,
+                329.63, 392, 440, 523.25, 587.33, 523.25, 440, 392];
+function ensureAudio(){
+  try {
+    if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioContext.state === 'suspended') audioContext.resume().catch(()=>{});
+    return true;
+  } catch (err) { byId('status').textContent='El sonido no está disponible en este navegador.'; return false; }
 }
-function toggleMusic(){
-  if(!audioContext)audioContext=new (window.AudioContext||window.webkitAudioContext)();
-  audioContext.resume();musicEnabled=!musicEnabled;
-  byId('music').textContent=musicEnabled?'♫ Silenciar':'♫ Música';
-  if(musicTimer)clearInterval(musicTimer);
-  if(musicEnabled){beep(melody[note++ % melody.length]);musicTimer=setInterval(()=>beep(melody[note++ % melody.length]),530)}
+function tone(freq, start, duration, volume, shape='sine') {
+  if (!audioContext) return;
+  const osc=audioContext.createOscillator(), gain=audioContext.createGain();
+  osc.type=shape;osc.frequency.setValueAtTime(freq,start);
+  gain.gain.setValueAtTime(0.0001,start);
+  gain.gain.exponentialRampToValueAtTime(Math.max(0.0002,volume),start+0.035);
+  gain.gain.exponentialRampToValueAtTime(0.0001,start+duration);
+  osc.connect(gain);gain.connect(audioContext.destination);
+  osc.start(start);osc.stop(start+duration+0.03);
+}
+function playMusicNote(){
+  if (!musicEnabled || !audioContext) return;
+  const now=audioContext.currentTime+0.015;
+  const freq=melody[note++ % melody.length];
+  tone(freq,now,0.63,0.019);
+  if (note%4===1) tone(freq/2,now,1.1,0.008);
+}
+function startMusic(){
+  if (!ensureAudio()) return;
+  musicEnabled=true;
+  clearInterval(musicTimer);
+  byId('music').textContent='♫ Silenciar música';
+  playMusicNote();musicTimer=setInterval(playMusicNote,670);
+}
+function stopMusic(){
+  musicEnabled=false;clearInterval(musicTimer);musicTimer=null;
+  byId('music').textContent='♫ Activar música';
+}
+function toggleMusic(){musicEnabled?stopMusic():startMusic()}
+function celebrateSound(final=false){
+  if (!ensureAudio()) return;
+  const t=audioContext.currentTime+0.01;
+  const notes=final?[523.25,659.25,783.99,1046.5]:[659.25,783.99,1046.5];
+  notes.forEach((hz,i)=>tone(hz,t+i*0.115,0.33,0.075,'sine'));
+}
+function sparkle(x,y,final=false){
+  const layer=byId('celebration');
+  const emojis=final?['⭐','✨','🎉','🌟','💛','✨']:['⭐','✨','🌟','💛'];
+  const count=final?22:13;
+  for(let i=0;i<count;i++){
+    const el=document.createElement('span');
+    const angle=(Math.PI*2*i/count)+Math.random()*.3;
+    const r=(final?95:65)+Math.random()*(final?105:75);
+    el.className='sparkle';el.textContent=emojis[i%emojis.length];
+    el.style.left=x+'px';el.style.top=y+'px';
+    el.style.setProperty('--dx',Math.cos(angle)*r+'px');
+    el.style.setProperty('--dy',Math.sin(angle)*r+'px');
+    el.style.setProperty('--spin',(Math.random()*150-75)+'deg');
+    layer.appendChild(el);
+    el.addEventListener('animationend',()=>el.remove(),{once:true});
+    setTimeout(()=>el.remove(),1500);
+  }
 }
 function say(message){
-  const node=byId('congrats');node.textContent=message;node.classList.add('visible');clearTimeout(messageTimer);
-  messageTimer=setTimeout(()=>node.classList.remove('visible'),1500);
+  const node=byId('congrats');node.textContent=message;node.classList.add('visible');
+  clearTimeout(messageTimer);
+  messageTimer=setTimeout(()=>node.classList.remove('visible'),1600);
 }
 function update(){
   const hearts=selected.has('heart')?1:0;
   const planes=['plane1','plane2','plane3'].filter(id=>selected.has(id)).length;
   byId('progress').textContent=`❤️ ${hearts} de 1 · ✈️ ${planes} de 3`;
-  if(hearts===1&&planes===3){byId('status').textContent='¡Has encontrado todos los elementos!';say('¡Muy bien! ¡Lo lograste! ⭐')}
+  return hearts===1&&planes===3;
 }
-byId('cover').addEventListener('targetFound',()=>{visible=true;byId('status').textContent='¡Portada reconocida! Toca el corazón y los aviones.'});
-byId('cover').addEventListener('targetLost',()=>{visible=false;byId('status').textContent='Vuelve a apuntar a la portada del libro.'});
+byId('cover').addEventListener('targetFound',()=>{
+  visible=true;
+  byId('status').textContent='¡Portada reconocida! Toca el corazón y los aviones.';
+});
+byId('cover').addEventListener('targetLost',()=>{
+  visible=false;
+  byId('status').textContent='Vuelve a apuntar a la portada del libro.';
+});
 const scene=byId('scene');
 scene.addEventListener('arReady',()=>{byId('status').textContent='Cámara lista. Apunta a la portada.'});
 scene.addEventListener('arError',()=>{byId('status').textContent='No se pudo iniciar MindAR. Comprueba permisos y recarga.'});
-// Detectar el toque real sobre el visor, sin depender del cursor sintetico de A-Frame.
-// El rayo 3D sale exactamente del punto que el nino toca en pantalla.
-const hitRaycaster = new THREE.Raycaster();
-const touchPoint = new THREE.Vector2();
-function registerHit(obj) {
-  if (!visible || selected.has(obj.id)) return;
+
+// Mantenemos exactamente el sistema de detección táctil de V3.
+const hitRaycaster=new THREE.Raycaster();
+const touchPoint=new THREE.Vector2();
+function registerHit(obj,x,y){
+  if(!visible || selected.has(obj.id))return;
   selected.add(obj.id);
-  obj.setAttribute('material', 'color: #fff2aa; opacity: 0.58; transparent: true; side: double');
-  if (audioContext) beep(783.99, .06);
-  say('¡Muy bien! ⭐');
-  update();
-}
-function detectTouch(event) {
-  // No interferir con los botones de musica, reinicio o la interfaz.
-  if (event.target.closest && event.target.closest('#top, #bottom, #congrats, button')) return;
-  if (!visible || !scene.renderer || !scene.camera) return;
-  const canvas = scene.renderer.domElement;
-  const rect = canvas.getBoundingClientRect();
-  const x = event.clientX, y = event.clientY;
-  if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) return;
-  touchPoint.set(((x - rect.left) / rect.width) * 2 - 1,
-                 -((y - rect.top) / rect.height) * 2 + 1);
-  // Actualizar matrices 3D antes de calcular la interseccion.
-  scene.object3D.updateMatrixWorld(true);
-  scene.camera.updateMatrixWorld(true);
-  hitRaycaster.setFromCamera(touchPoint, scene.camera);
-  const candidates = [...document.querySelectorAll('.hotspot')]
-    .filter(el => !selected.has(el.id))
-    .map(el => el.getObject3D('mesh'))
-    .filter(Boolean);
-  const hits = hitRaycaster.intersectObjects(candidates, true);
-  if (hits.length) {
-    let node = hits[0].object;
-    while (node && !(node.el && node.el.classList.contains('hotspot'))) node = node.parent;
-    if (node && node.el) registerHit(node.el);
-  } else {
-    byId('status').textContent = 'Toque recibido. Prueba directamente sobre un circulo del libro.';
+  obj.setAttribute('material','color: #fff2aa; opacity: 0.58; transparent: true; side: double');
+  // El primer toque válido desbloquea el sonido en iPhone y comienza la melodía.
+  if(!musicEnabled && !userMutedMusic) startMusic();
+  const finished=update();
+  celebrateSound(finished);
+  sparkle(x,y,finished);
+  if(finished){
+    byId('status').textContent='¡Has encontrado todos los elementos!';
+    say('¡Fantástico! ¡Encontraste todo! 🎉');
+  }else{
+    say('¡Muy bien! ⭐');
   }
 }
-document.addEventListener('pointerdown', detectTouch, {capture: true, passive: true});
-byId('music').addEventListener('click',toggleMusic);
-byId('reset').addEventListener('click',()=>{
-  selected.clear();document.querySelectorAll('.hotspot').forEach(obj=>obj.setAttribute('material','color: #ffe29a; opacity: 0.12; transparent: true; side: double'));
-  byId('status').textContent=visible?'¡Portada reconocida! Toca los objetos.':'Apunta a la portada del libro.';update();
+let userMutedMusic=false;
+function detectTouch(event){
+  if(event.target.closest && event.target.closest('#top, #bottom, #congrats, button'))return;
+  if(!visible || !scene.renderer || !scene.camera)return;
+  const canvas=scene.renderer.domElement,rect=canvas.getBoundingClientRect();
+  const x=event.clientX,y=event.clientY;
+  if(x<rect.left || x>rect.right || y<rect.top || y>rect.bottom)return;
+  touchPoint.set(((x-rect.left)/rect.width)*2-1,-((y-rect.top)/rect.height)*2+1);
+  scene.object3D.updateMatrixWorld(true);
+  scene.camera.updateMatrixWorld(true);
+  hitRaycaster.setFromCamera(touchPoint,scene.camera);
+  const candidates=[...document.querySelectorAll('.hotspot')]
+    .filter(el=>!selected.has(el.id)).map(el=>el.getObject3D('mesh')).filter(Boolean);
+  const hits=hitRaycaster.intersectObjects(candidates,true);
+  if(hits.length){
+    let node=hits[0].object;
+    while(node && !(node.el && node.el.classList.contains('hotspot')))node=node.parent;
+    if(node&&node.el)registerHit(node.el,x,y);
+  }else{
+    byId('status').textContent='Toque recibido. Prueba directamente sobre un círculo del libro.';
+  }
+}
+document.addEventListener('pointerdown',detectTouch,{capture:true,passive:true});
+byId('music').addEventListener('click',()=>{
+  if(musicEnabled){userMutedMusic=true;stopMusic()}
+  else{userMutedMusic=false;startMusic()}
 });
-window.addEventListener('pagehide',()=>{if(musicTimer)clearInterval(musicTimer)});
+byId('reset').addEventListener('click',()=>{
+  selected.clear();
+  document.querySelectorAll('.hotspot').forEach(obj=>obj.setAttribute('material','color: #ffe29a; opacity: 0.12; transparent: true; side: double'));
+  byId('status').textContent=visible?'¡Portada reconocida! Toca los objetos.':'Apunta a la portada del libro.';
+  byId('congrats').classList.remove('visible');
+  byId('celebration').replaceChildren();
+  update();
+});
+window.addEventListener('pagehide',stopMusic);
 </script>
 </body>
 </html>
