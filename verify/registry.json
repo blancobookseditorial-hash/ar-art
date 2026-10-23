@@ -83,6 +83,13 @@
       "format": "Acrylic",
       "status": "registered",
       "image": "/artwork-images/el-lunatico-acrylic.jpg"
+    },
+    {
+      "work": "Anatomia de una isla",
+      "edition": "00126092026",
+      "format": "shirt",
+      "status": "registered",
+      "image": "/artwork-images/Anatomia-de-una-isla-shirt.jpeg"
     }
   ]
 }
