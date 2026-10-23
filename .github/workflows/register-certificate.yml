@@ -1,0 +1,94 @@
+name: Register artwork certificate
+
+on:
+  workflow_dispatch:
+    inputs:
+      artwork:
+        description: 'Artwork title (exactly as registered, e.g. Moon Walker)'
+        required: true
+        type: string
+      edition:
+        description: 'Exact certificate code (e.g. BAH-MW-004)'
+        required: true
+        type: string
+      format:
+        description: 'Material or product (e.g. Jacket, Acrylic, shirt)'
+        required: true
+        type: string
+      photo:
+        description: 'Optional existing photo filename in artwork-images (e.g. moon-walker-jacket.jpg)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  draft-registration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out latest production code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+      - name: Validate and prepare certificate
+        shell: bash
+        env:
+          WORK_INPUT: ${{ inputs.artwork }}
+          EDITION_INPUT: ${{ inputs.edition }}
+          FORMAT_INPUT: ${{ inputs.format }}
+          PHOTO_INPUT: ${{ inputs.photo }}
+        run: |
+          python3 - <<'PY'
+          import json, os, pathlib, re, sys
+          file = pathlib.Path('verify/registry.json')
+          data = json.loads(file.read_text(encoding='utf-8'))
+          if not isinstance(data.get('records'), list):
+              sys.exit('Registry records are missing or invalid')
+          raw = {k: os.environ[k].strip() for k in ('WORK_INPUT','EDITION_INPUT','FORMAT_INPUT','PHOTO_INPUT')}
+          work, edition, fmt, photo = (raw[k] for k in ('WORK_INPUT','EDITION_INPUT','FORMAT_INPUT','PHOTO_INPUT'))
+          if not work or not edition or not fmt:
+              sys.exit('Artwork, code and format are all required')
+          if any(len(x) > n for x,n in ((work,150),(edition,80),(fmt,100))):
+              sys.exit('A field is too long')
+          if any(ord(c) < 32 for c in work + edition + fmt):
+              sys.exit('Control characters are not allowed')
+          norm = lambda s: ' '.join(str(s).strip().casefold().split())
+          for item in data['records']:
+              if norm(item.get('work','')) == norm(work) and norm(item.get('edition','')) == norm(edition):
+                  sys.exit('Certificate already exists for this artwork and edition code; no changes made')
+          existing_titles={norm(r.get('work','')):r.get('work','') for r in data['records']}
+          work=existing_titles.get(norm(work),work)
+          record={'work':work,'edition':edition,'format':fmt,'status':'registered'}
+          if photo:
+              if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*\.(?:jpg|jpeg|png|webp)',photo,re.IGNORECASE):
+                  sys.exit('Photo must be an existing filename such as moon-walker-jacket.jpg, not a URL or path')
+              imagefile=pathlib.Path('artwork-images')/photo
+              if not imagefile.is_file():
+                  sys.exit('Photo file not found in artwork-images; upload it to main first or leave this field blank')
+              record['image']='/artwork-images/'+photo
+          data['records'].append(record)
+          file.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as out:
+              out.write(f'Prepared **{work}** — `{edition}` — **{fmt}**. A pull request will be created for review.\n')
+          PY
+      - name: Open pull request for approval
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WORK_INPUT: ${{ inputs.artwork }}
+          EDITION_INPUT: ${{ inputs.edition }}
+          FORMAT_INPUT: ${{ inputs.format }}
+        run: |
+          branch="certificate-registration-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add verify/registry.json
+          git commit -m "Register artwork certificate ${GITHUB_RUN_ID}"
+          git push origin "$branch"
+          gh pr create --base main --head "$branch" \
+            --title "Register certificate: ${WORK_INPUT} (${EDITION_INPUT})" \
+            --body "New certificate for **${WORK_INPUT}**, edition code \`${EDITION_INPUT}\`, format **${FORMAT_INPUT}**. Review the changes and Netlify preview before merging. This workflow does not modify AR files."
