@@ -60,11 +60,17 @@
     <a-circle id="plane2" class="hotspot" data-type="plane" position="0.025 0.075 0.025" radius="0.069" segments="40" material="color: #ffe29a; opacity: 0.12; transparent: true; side: double"></a-circle>
     <a-circle id="plane3" class="hotspot" data-type="plane" position="0.177 -0.018 0.025" radius="0.075" segments="40" material="color: #ffe29a; opacity: 0.12; transparent: true; side: double"></a-circle>
   </a-entity>
+  <a-entity id="page2" mindar-image-target="targetIndex: 1">
+    <!-- Página 2 cuadrada. Posiciones aproximadas respecto al ancho del objetivo. -->
+    <a-circle id="pencil-green" class="hotspot" data-type="pencil" position="-0.335 -0.400 0.025" radius="0.077" segments="40" material="color: #ffe29a; opacity: 0.14; transparent: true; side: double"></a-circle>
+    <a-circle id="pencil-blue" class="hotspot" data-type="pencil" position="0.188 -0.380 0.025" radius="0.082" segments="40" material="color: #ffe29a; opacity: 0.14; transparent: true; side: double"></a-circle>
+    <a-circle id="pencil-yellow" class="hotspot" data-type="pencil" position="0.370 -0.407 0.025" radius="0.077" segments="40" material="color: #ffe29a; opacity: 0.14; transparent: true; side: double"></a-circle>
+  </a-entity>
 </a-scene>
 <script>
 const byId = id => document.getElementById(id);
 const selected = new Set();
-let visible = false, messageTimer, finishTimer = null, gameFinished = false;
+let visible = false, activePage = null, messageTimer, finishTimer = null, gameFinished = false;
 let audioContext = null, musicTimer = null, musicEnabled = false, note = 0;
 // Melodía instrumental suave, creada directamente en el navegador.
 // No requiere plataformas, pistas de terceros ni archivos de audio.
@@ -136,21 +142,43 @@ function say(message){
   messageTimer=setTimeout(()=>node.classList.remove('visible'),1600);
 }
 function update(){
+  if(activePage===1){
+    const count=['pencil-green','pencil-blue','pencil-yellow'].filter(id=>selected.has(id)).length;
+    byId('progress').textContent=`✏️ ${count} de 3`;
+    return count===3;
+  }
   const hearts=selected.has('heart')?1:0;
   const planes=['plane1','plane2','plane3'].filter(id=>selected.has(id)).length;
   byId('progress').textContent=`❤️ ${hearts} de 1 · ✈️ ${planes} de 3`;
   return hearts===1&&planes===3;
 }
-byId('cover').addEventListener('targetFound',()=>{
+const pages={
+  0:{entity:'cover',question:'¿Puedes encontrar un corazón y tres aviones de papel?',instruction:'Toca el corazón y los tres aviones.',ending:'¡Encontraste el corazón y los tres aviones de papel!'},
+  1:{entity:'page2',question:'¿Puedes encontrar tres lápices de colores?',instruction:'Toca los tres lápices de colores.',ending:'¡Encontraste los tres lápices de colores!'}
+};
+function selectPage(index){
+  if(activePage!==index){
+    activePage=index;
+    resetGame();
+  }
   visible=true;
-  byId('status').textContent='¡Portada reconocida! Toca el corazón y los aviones.';
-});
-byId('cover').addEventListener('targetLost',()=>{
-  visible=false;
-  byId('status').textContent='Vuelve a apuntar a la portada del libro.';
+  byId('question').textContent=pages[index].question;
+  byId('finishText').textContent=pages[index].ending;
+  update();
+  byId('status').textContent='¡Página reconocida! '+pages[index].instruction;
+}
+Object.entries(pages).forEach(([index,data])=>{
+  const el=byId(data.entity);
+  el.addEventListener('targetFound',()=>selectPage(Number(index)));
+  el.addEventListener('targetLost',()=>{
+    if(activePage===Number(index)){
+      visible=false;
+      byId('status').textContent='Vuelve a apuntar a la página del libro.';
+    }
+  });
 });
 const scene=byId('scene');
-scene.addEventListener('arReady',()=>{byId('status').textContent='Cámara lista. Apunta a la portada.'});
+scene.addEventListener('arReady',()=>{byId('status').textContent='Cámara lista. Apunta a la portada o a la página 2.'});
 scene.addEventListener('arError',()=>{byId('status').textContent='No se pudo iniciar MindAR. Comprueba permisos y recarga.'});
 
 // Mantenemos exactamente el sistema de detección táctil de V3.
@@ -189,7 +217,8 @@ function detectTouch(event){
   scene.object3D.updateMatrixWorld(true);
   scene.camera.updateMatrixWorld(true);
   hitRaycaster.setFromCamera(touchPoint,scene.camera);
-  const candidates=[...document.querySelectorAll('.hotspot')]
+  const root=activePage===0?byId('cover'):byId('page2');
+  const candidates=[...root.querySelectorAll('.hotspot')]
     .filter(el=>!selected.has(el.id)).map(el=>el.getObject3D('mesh')).filter(Boolean);
   const hits=hitRaycaster.intersectObjects(candidates,true);
   if(hits.length){
@@ -197,7 +226,7 @@ function detectTouch(event){
     while(node && !(node.el && node.el.classList.contains('hotspot')))node=node.parent;
     if(node&&node.el)registerHit(node.el,x,y);
   }else{
-    byId('status').textContent='Toque recibido. Prueba directamente sobre un círculo del libro.';
+    byId('status').textContent='Toque recibido. Prueba sobre uno de los objetos señalados.';
   }
 }
 document.addEventListener('pointerdown',detectTouch,{capture:true,passive:true});
@@ -211,7 +240,7 @@ function resetGame(){
   clearTimeout(messageTimer);
   selected.clear();
   document.querySelectorAll('.hotspot').forEach(obj=>obj.setAttribute('material','color: #ffe29a; opacity: 0.12; transparent: true; side: double'));
-  byId('status').textContent=visible?'¡Portada reconocida! Toca los objetos.':'Apunta a la portada del libro.';
+  byId('status').textContent=visible&&activePage!==null?'¡Página reconocida! '+pages[activePage].instruction:'Apunta a una página del libro.';
   byId('congrats').classList.remove('visible');
   byId('celebration').replaceChildren();
   update();
