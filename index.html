@@ -172,6 +172,26 @@
         webkit-playsinline>
       </video>
 
+      <!-- 5 - A Dream of Wings -->
+      <video
+        id="videoDreamWings"
+        src="./videos/A-dream-of-wings.mp4"
+        preload="auto"
+        loop
+        playsinline
+        webkit-playsinline>
+      </video>
+
+      <!-- 6 - What Clouds Cannot Dim -->
+      <video
+        id="videoClouds"
+        src="./videos/What-Clouds-cannot-dim.mp4"
+        preload="auto"
+        loop
+        playsinline
+        webkit-playsinline>
+      </video>
+
     </a-assets>
 
 
@@ -255,6 +275,36 @@
 
     </a-entity>
 
+
+    <!-- 5 - A Dream of Wings (vertical) -->
+    <a-entity
+      id="targetDreamWings"
+      mindar-image-target="targetIndex: 5">
+
+      <a-video
+        src="#videoDreamWings"
+        position="0 0 0.01"
+        width="1"
+        height="1.24">
+      </a-video>
+
+    </a-entity>
+
+
+    <!-- 6 - What Clouds Cannot Dim (vertical) -->
+    <a-entity
+      id="targetClouds"
+      mindar-image-target="targetIndex: 6">
+
+      <a-video
+        src="#videoClouds"
+        position="0 0 0.01"
+        width="1"
+        height="1.55">
+      </a-video>
+
+    </a-entity>
+
   </a-scene>
 
 
@@ -267,7 +317,9 @@
         document.querySelector("#videoSeths"),
         document.querySelector("#videoLunatico"),
         document.querySelector("#videoCielo"),
-        document.querySelector("#videoNacimiento")
+        document.querySelector("#videoNacimiento"),
+        document.querySelector("#videoDreamWings"),
+        document.querySelector("#videoClouds")
       ];
 
       const pares = [
@@ -275,7 +327,9 @@
         { target: document.querySelector("#targetSeths"),      video: document.querySelector("#videoSeths") },
         { target: document.querySelector("#targetLunatico"),   video: document.querySelector("#videoLunatico") },
         { target: document.querySelector("#targetCielo"),      video: document.querySelector("#videoCielo") },
-        { target: document.querySelector("#targetNacimiento"), video: document.querySelector("#videoNacimiento") }
+        { target: document.querySelector("#targetNacimiento"), video: document.querySelector("#videoNacimiento") },
+        { target: document.querySelector("#targetDreamWings"), video: document.querySelector("#videoDreamWings") },
+        { target: document.querySelector("#targetClouds"), video: document.querySelector("#videoClouds") }
       ];
 
       const startButton =
