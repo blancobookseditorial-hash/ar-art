@@ -39,9 +39,9 @@
 <div id="finishScreen" role="dialog" aria-modal="true" aria-labelledby="finishTitle" hidden>
   <div id="finishCard">
     <div id="finishIcon" aria-hidden="true">🎉⭐🎉</div>
-    <h2 id="finishTitle">¡Lo lograste!</h2>
+    <h2 id="finishTitle">¿Listo para la próxima aventura?</h2>
     <p id="finishText">¡Encontraste el corazón y los tres aviones de papel!</p>
-    <button type="button" id="replay">↻ Volver a jugar</button>
+    <button type="button" id="replay">📖 Explorar otra página</button>
   </div>
 </div>
 <div id="bottom"><div id="status">Preparando cámara AR…</div><div id="controls"><button id="music" type="button">♫ Activar música</button><button id="reset" type="button">↻ Reiniciar</button></div></div>
@@ -61,10 +61,10 @@
     <a-circle id="plane3" class="hotspot" data-type="plane" position="0.177 -0.018 0.025" radius="0.075" segments="40" material="color: #ffe29a; opacity: 0.12; transparent: true; side: double"></a-circle>
   </a-entity>
   <a-entity id="page2" mindar-image-target="targetIndex: 1">
-    <!-- Página 2 cuadrada. Posiciones aproximadas respecto al ancho del objetivo. -->
-    <a-circle id="pencil-green" class="hotspot" data-type="pencil" position="-0.335 -0.400 0.025" radius="0.077" segments="40" material="color: #ffe29a; opacity: 0.14; transparent: true; side: double"></a-circle>
-    <a-circle id="pencil-blue" class="hotspot" data-type="pencil" position="0.188 -0.380 0.025" radius="0.082" segments="40" material="color: #ffe29a; opacity: 0.14; transparent: true; side: double"></a-circle>
-    <a-circle id="pencil-yellow" class="hotspot" data-type="pencil" position="0.370 -0.407 0.025" radius="0.077" segments="40" material="color: #ffe29a; opacity: 0.14; transparent: true; side: double"></a-circle>
+    <!-- Zonas amplias para lápices; ajustar tras prueba impresa. -->
+    <a-plane id="pencil-green" class="hotspot" data-type="pencil" position="-0.30 -0.22 0.025" width="0.16" height="0.42" rotation="0 0 -18" material="color: #ffe29a; opacity: 0.20; transparent: true; side: double"></a-plane>
+    <a-plane id="pencil-blue" class="hotspot" data-type="pencil" position="0.00 -0.18 0.025" width="0.16" height="0.42" rotation="0 0 0" material="color: #ffe29a; opacity: 0.20; transparent: true; side: double"></a-plane>
+    <a-plane id="pencil-yellow" class="hotspot" data-type="pencil" position="0.29 -0.22 0.025" width="0.16" height="0.42" rotation="0 0 18" material="color: #ffe29a; opacity: 0.20; transparent: true; side: double"></a-plane>
   </a-entity>
 </a-scene>
 <script>
@@ -154,7 +154,7 @@ function update(){
 }
 const pages={
   0:{entity:'cover',question:'¿Puedes encontrar un corazón y tres aviones de papel?',instruction:'Toca el corazón y los tres aviones.',ending:'¡Encontraste el corazón y los tres aviones de papel!'},
-  1:{entity:'page2',question:'¿Puedes encontrar tres lápices de colores?',instruction:'Toca los tres lápices de colores.',ending:'¡Encontraste los tres lápices de colores!'}
+  1:{entity:'page2',question:'¿Puedes encontrar tres lápices de colores?',instruction:'Toca los tres lápices de colores.',ending:'¡Encontraste los tres lápices de colores! Pronto habrá más páginas interactivas.'}
 };
 function selectPage(index){
   if(activePage!==index){
@@ -197,7 +197,7 @@ function registerHit(obj,x,y){
     gameFinished=true;
     byId('status').textContent='¡Has encontrado todos los elementos!';
     say('¡Fantástico! ¡Encontraste todo! 🎉');
-    // La celebración ocupa la pantalla y luego aparece el botón para repetir.
+    // La celebración ocupa la pantalla y luego invita a explorar otra página.
     setTimeout(()=>sparkle(window.innerWidth/2,window.innerHeight/2,true),360);
     setTimeout(()=>sparkle(window.innerWidth/2,window.innerHeight/2,true),820);
     clearTimeout(finishTimer);
