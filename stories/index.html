@@ -1,105 +1,91 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#10233a">
-  <meta name="description" content="Juego interactivo de El lugar donde terminan los cuentos — Blanco Art House.">
-  <title>El lugar donde terminan los cuentos | Blanco Art House</title>
-  <style>
-    :root {font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;color:#172c42;background:#f6f2e8}
-    * {box-sizing:border-box}
-    body {margin:0; min-height:100vh}
-    header {padding:20px 16px 8px;text-align:center}
-    .brand {font-size:.7rem;text-transform:uppercase;letter-spacing:.24em;color:#587078;font-weight:800}
-    h1 {font-size:clamp(1.3rem,4vw,2rem);line-height:1.18;margin:9px 0}
-    .question {font-size:clamp(1.03rem,3vw,1.3rem);font-weight:700;margin:10px auto;max-width:600px}
-    main {width:min(100%,740px);margin:0 auto;padding:0 14px 28px;text-align:center}
-    .stats {display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin:12px auto}
-    .pill {border:1px solid #c7d3d8;background:white;border-radius:99px;padding:8px 14px;font-weight:700;font-size:.92rem}
-    .art {position:relative;width:min(100%,480px);margin:0 auto;line-height:0;border:5px solid #fff;border-radius:14px;overflow:hidden;box-shadow:0 9px 30px #10233a24;background:#10233a}
-    .art img {display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none}
-    .hotspot {position:absolute;transform:translate(-50%,-50%);width:12%;aspect-ratio:1;border:2px solid transparent;border-radius:50%;background:transparent;cursor:pointer;display:grid;place-items:center;line-height:1;touch-action:manipulation}
-    .hotspot:focus-visible {outline:3px solid #ffe36a;outline-offset:0;background:#17394b50}
-    .hotspot.found {background:#e2fff1dd;border:3px solid #13a77e;box-shadow:0 0 0 4px #093a4b70;cursor:default}
-    .hotspot.found::after {content:'✓';font-size:clamp(15px,5vw,25px);font-weight:900;color:#087457}
-    .hotspot[data-id="heart"] {left:48%;top:82.1%}
-    .hotspot[data-id="plane1"] {left:62.5%;top:35.3%}
-    .hotspot[data-id="plane2"] {left:51.9%;top:44.3%}
-    .hotspot[data-id="plane3"] {left:67.4%;top:51.7%}
-    .feedback {min-height:62px;display:grid;place-items:center;align-content:center;margin:12px auto 4px;max-width:520px;font-size:1.2rem;font-weight:800;color:#087457}
-    .feedback small {display:block;font-size:.9rem;font-weight:500;color:#355269;margin-top:4px}
-    .done {animation:pop .35s ease both}
-    @keyframes pop {from {transform:scale(.87);opacity:.3}to {transform:scale(1);opacity:1}}
-    .restart {border:0;background:#17394b;color:white;font-size:1rem;border-radius:10px;padding:12px 22px;font-weight:750;cursor:pointer}
-    .restart:hover {background:#285978}
-    .note {font-size:.81rem;color:#59717b;margin:16px auto;max-width:520px;line-height:1.45}
-    @media (prefers-reduced-motion:reduce){*{animation:none!important}}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#192a43">
+<title>El lugar donde terminan los cuentos — Juego AR</title>
+<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#192a43;font-family:Arial,sans-serif;color:white}
+#top{position:fixed;z-index:30;top:max(10px,env(safe-area-inset-top));left:10px;right:10px;text-align:center;pointer-events:none}
+#question{display:inline-block;max-width:540px;background:rgba(14,31,51,.9);border:1px solid #e2cb93;border-radius:16px;padding:11px 15px;font-size:clamp(14px,3.5vw,18px);font-weight:bold;line-height:1.4}
+#progress{display:block;width:max-content;margin:8px auto;padding:7px 12px;background:rgba(14,31,51,.85);border-radius:20px;font-weight:bold;font-size:14px}
+#bottom{position:fixed;z-index:30;bottom:max(12px,env(safe-area-inset-bottom));left:10px;right:10px;display:flex;justify-content:space-between;align-items:end;gap:8px}
+#status{font-size:13px;max-width:60%;line-height:1.45;padding:10px 12px;background:rgba(14,31,51,.88);border-radius:13px}
+#controls{display:flex;gap:6px}button{font-size:13px;font-weight:bold;background:#fff0cf;color:#192a43;border:0;padding:11px 12px;border-radius:12px;cursor:pointer}
+#congrats{position:fixed;z-index:32;top:45%;left:50%;transform:translate(-50%,-50%) scale(.85);opacity:0;pointer-events:none;background:#fff0cf;color:#15364b;padding:17px 24px;border-radius:20px;font-size:clamp(24px,5vw,34px);font-weight:bold;text-align:center;box-shadow:0 8px 30px #0008;transition:opacity .15s,transform .15s;max-width:90vw}
+#congrats.visible{opacity:1;transform:translate(-50%,-50%) scale(1)}
+</style>
 </head>
 <body>
-  <header>
-    <div class="brand">Blanco Art House · Cuentos interactivos</div>
-    <h1>El lugar donde terminan los cuentos</h1>
-    <p class="question">¿Puedes encontrar un corazón y tres aviones de papel?</p>
-  </header>
-  <main>
-    <div class="stats" aria-label="Progreso del juego">
-      <div class="pill" id="heart-count">❤️ Corazón: 0 de 1</div>
-      <div class="pill" id="plane-count">✈️ Aviones: 0 de 3</div>
-    </div>
-    <div class="art" aria-label="Portada del cuento con un corazón y tres aviones de papel">
-      <img src="assets/portada-el-lugar.png" alt="Portada ilustrada de El lugar donde terminan los cuentos" draggable="false">
-      <button class="hotspot" data-id="heart" aria-label="Seleccionar corazón" type="button"></button>
-      <button class="hotspot" data-id="plane1" aria-label="Seleccionar primer avión de papel" type="button"></button>
-      <button class="hotspot" data-id="plane2" aria-label="Seleccionar segundo avión de papel" type="button"></button>
-      <button class="hotspot" data-id="plane3" aria-label="Seleccionar tercer avión de papel" type="button"></button>
-    </div>
-    <div class="feedback" role="status" aria-live="polite" id="feedback"><small>Toca el corazón y los aviones directamente en la ilustración.</small></div>
-    <button class="restart" type="button" id="restart">Volver a jugar ↻</button>
-    <p class="note">Esta es la primera prueba digital. El reconocimiento de la página del libro físico mediante la cámara se incorporará después y permanecerá separado de la realidad aumentada de los cuadros.</p>
-  </main>
-  <script>
-    const found = new Set();
-    const buttons = [...document.querySelectorAll('.hotspot')];
-    const heartCount = document.getElementById('heart-count');
-    const planeCount = document.getElementById('plane-count');
-    const feedback = document.getElementById('feedback');
-    function render(message) {
-      const hearts = found.has('heart') ? 1 : 0;
-      const planes = [...found].filter(x=>x.startsWith('plane')).length;
-      heartCount.textContent = `❤️ Corazón: ${hearts} de 1`;
-      planeCount.textContent = `✈️ Aviones: ${planes} de 3`;
-      feedback.classList.remove('done');
-      void feedback.offsetWidth;
-      if (found.size === 4) {
-        feedback.innerHTML = '¡Muy bien! ⭐<small>¡Encontraste el corazón y los tres aviones de papel!</small>';
-        feedback.classList.add('done');
-      } else if (message) {
-        feedback.textContent = '¡Muy bien!';
-        feedback.classList.add('done');
-      } else {
-        feedback.innerHTML = '<small>Toca el corazón y los aviones directamente en la ilustración.</small>';
-      }
-    }
-    buttons.forEach(button=>button.addEventListener('click',()=>{
-      const id=button.dataset.id;
-      if(found.has(id))return;
-      found.add(id);
-      button.classList.add('found');
-      button.setAttribute('aria-pressed','true');
-      button.setAttribute('aria-label',button.getAttribute('aria-label')+' encontrado');
-      render(true);
-    }));
-    document.getElementById('restart').addEventListener('click',()=>{
-      found.clear();
-      buttons.forEach(button=>{
-        button.classList.remove('found');
-        button.setAttribute('aria-pressed','false');
-        button.setAttribute('aria-label',button.getAttribute('aria-label').replace(' encontrado',''));
-      });
-      render(false);
-    });
-  </script>
+<div id="top"><div id="question">¿Puedes encontrar un corazón y tres aviones de papel?</div><div id="progress">❤️ 0 de 1 · ✈️ 0 de 3</div></div>
+<div id="congrats" role="status" aria-live="polite">¡Muy bien! ⭐</div>
+<div id="bottom"><div id="status">Preparando cámara AR…</div><div id="controls"><button id="music" type="button">♫ Música</button><button id="reset" type="button">↻ Reiniciar</button></div></div>
+<a-scene id="scene"
+  mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 1;"
+  color-space="sRGB"
+  renderer="colorManagement: true; physicallyCorrectLights: true"
+  vr-mode-ui="enabled: false"
+  device-orientation-permission-ui="enabled: false"
+  cursor="rayOrigin: mouse"
+  raycaster="objects: .hotspot; far: 100">
+  <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+  <a-entity id="cover" mindar-image-target="targetIndex: 0">
+    <!-- Coordenadas relativas a la portada 610 x 786 px (ancho de la imagen = 1 unidad AR). -->
+    <a-circle id="heart" class="hotspot" data-type="heart" position="-0.018 -0.416 0.025" radius="0.071" segments="40" material="color: #ffe29a; opacity: 0.12; transparent: true; side: double"></a-circle>
+    <a-circle id="plane1" class="hotspot" data-type="plane" position="0.123 0.190 0.025" radius="0.076" segments="40" material="color: #ffe29a; opacity: 0.12; transparent: true; side: double"></a-circle>
+    <a-circle id="plane2" class="hotspot" data-type="plane" position="0.025 0.075 0.025" radius="0.069" segments="40" material="color: #ffe29a; opacity: 0.12; transparent: true; side: double"></a-circle>
+    <a-circle id="plane3" class="hotspot" data-type="plane" position="0.177 -0.018 0.025" radius="0.075" segments="40" material="color: #ffe29a; opacity: 0.12; transparent: true; side: double"></a-circle>
+  </a-entity>
+</a-scene>
+<script>
+const byId = id => document.getElementById(id);
+const selected = new Set();let visible = false;let messageTimer;
+let audioContext = null;let musicTimer = null;let musicEnabled = false;let note = 0;
+const melody = [392,440,523.25,587.33,659.25,587.33,523.25,440,392,349.23,392,440,523.25,392];
+function beep(frequency,volume=.025){
+  if(!audioContext)return;
+  const now=audioContext.currentTime,osc=audioContext.createOscillator(),gain=audioContext.createGain();
+  osc.type='sine';osc.frequency.value=frequency;gain.gain.setValueAtTime(.0001,now);
+  gain.gain.exponentialRampToValueAtTime(volume,now+.03);
+  gain.gain.exponentialRampToValueAtTime(.0001,now+.38);
+  osc.connect(gain).connect(audioContext.destination);osc.start(now);osc.stop(now+.4);
+}
+function toggleMusic(){
+  if(!audioContext)audioContext=new (window.AudioContext||window.webkitAudioContext)();
+  audioContext.resume();musicEnabled=!musicEnabled;
+  byId('music').textContent=musicEnabled?'♫ Silenciar':'♫ Música';
+  if(musicTimer)clearInterval(musicTimer);
+  if(musicEnabled){beep(melody[note++ % melody.length]);musicTimer=setInterval(()=>beep(melody[note++ % melody.length]),530)}
+}
+function say(message){
+  const node=byId('congrats');node.textContent=message;node.classList.add('visible');clearTimeout(messageTimer);
+  messageTimer=setTimeout(()=>node.classList.remove('visible'),1500);
+}
+function update(){
+  const hearts=selected.has('heart')?1:0;
+  const planes=['plane1','plane2','plane3'].filter(id=>selected.has(id)).length;
+  byId('progress').textContent=`❤️ ${hearts} de 1 · ✈️ ${planes} de 3`;
+  if(hearts===1&&planes===3){byId('status').textContent='¡Has encontrado todos los elementos!';say('¡Muy bien! ¡Lo lograste! ⭐')}
+}
+byId('cover').addEventListener('targetFound',()=>{visible=true;byId('status').textContent='¡Portada reconocida! Toca el corazón y los aviones.'});
+byId('cover').addEventListener('targetLost',()=>{visible=false;byId('status').textContent='Vuelve a apuntar a la portada del libro.'});
+const scene=byId('scene');
+scene.addEventListener('arReady',()=>{byId('status').textContent='Cámara lista. Apunta a la portada.'});
+scene.addEventListener('arError',()=>{byId('status').textContent='No se pudo iniciar MindAR. Comprueba permisos y recarga.'});
+document.querySelectorAll('.hotspot').forEach(obj=>obj.addEventListener('click',()=>{
+  if(!visible||selected.has(obj.id))return;
+  selected.add(obj.id);obj.setAttribute('material','color: #fff2aa; opacity: 0.58; transparent: true; side: double');
+  if(audioContext)beep(783.99,.06);say('¡Muy bien! ⭐');update();
+}));
+byId('music').addEventListener('click',toggleMusic);
+byId('reset').addEventListener('click',()=>{
+  selected.clear();document.querySelectorAll('.hotspot').forEach(obj=>obj.setAttribute('material','color: #ffe29a; opacity: 0.12; transparent: true; side: double'));
+  byId('status').textContent=visible?'¡Portada reconocida! Toca los objetos.':'Apunta a la portada del libro.';update();
+});
+window.addEventListener('pagehide',()=>{if(musicTimer)clearInterval(musicTimer)});
+</script>
 </body>
 </html>
