@@ -61,10 +61,11 @@
     <a-circle id="plane3" class="hotspot" data-type="plane" position="0.177 -0.018 0.025" radius="0.075" segments="40" material="color: #ffe29a; opacity: 0.12; transparent: true; side: double"></a-circle>
   </a-entity>
   <a-entity id="page2" mindar-image-target="targetIndex: 1">
-    <!-- Zonas amplias para lápices; ajustar tras prueba impresa. -->
-    <a-plane id="pencil-green" class="hotspot" data-type="pencil" position="-0.30 -0.22 0.025" width="0.16" height="0.42" rotation="0 0 -18" material="color: #ffe29a; opacity: 0.20; transparent: true; side: double"></a-plane>
-    <a-plane id="pencil-blue" class="hotspot" data-type="pencil" position="0.00 -0.18 0.025" width="0.16" height="0.42" rotation="0 0 0" material="color: #ffe29a; opacity: 0.20; transparent: true; side: double"></a-plane>
-    <a-plane id="pencil-yellow" class="hotspot" data-type="pencil" position="0.29 -0.22 0.025" width="0.16" height="0.42" rotation="0 0 18" material="color: #ffe29a; opacity: 0.20; transparent: true; side: double"></a-plane>
+    <!-- Tres crayones reales, en la parte inferior de la ilustración. -->
+    <!-- Posiciones estimadas de la foto de prueba; zonas horizontales para no tapar al niño. -->
+    <a-plane id="pencil-green" class="hotspot" data-type="pencil" position="-0.290 -0.540 0.025" width="0.245" height="0.092" rotation="0 0 -9" material="color: #ffe29a; opacity: 0.18; transparent: true; side: double"></a-plane>
+    <a-plane id="pencil-blue" class="hotspot" data-type="pencil" position="0.140 -0.490 0.025" width="0.220" height="0.092" rotation="0 0 -17" material="color: #ffe29a; opacity: 0.18; transparent: true; side: double"></a-plane>
+    <a-plane id="pencil-yellow" class="hotspot" data-type="pencil" position="0.330 -0.535 0.025" width="0.225" height="0.092" rotation="0 0 27" material="color: #ffe29a; opacity: 0.18; transparent: true; side: double"></a-plane>
   </a-entity>
 </a-scene>
 <script>
@@ -154,7 +155,7 @@ function update(){
 }
 const pages={
   0:{entity:'cover',question:'¿Puedes encontrar un corazón y tres aviones de papel?',instruction:'Toca el corazón y los tres aviones.',ending:'¡Encontraste el corazón y los tres aviones de papel!'},
-  1:{entity:'page2',question:'¿Puedes encontrar tres lápices de colores?',instruction:'Toca los tres lápices de colores.',ending:'¡Encontraste los tres lápices de colores! Pronto habrá más páginas interactivas.'}
+  1:{entity:'page2',question:'¿Puedes encontrar tres crayones de colores?',instruction:'Toca los tres crayones de colores.',ending:'¡Encontraste los tres crayones de colores! Pronto habrá más páginas interactivas.'}
 };
 function selectPage(index){
   if(activePage!==index){
