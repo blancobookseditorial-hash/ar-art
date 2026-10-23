@@ -29,8 +29,7 @@
   renderer="colorManagement: true; physicallyCorrectLights: true"
   vr-mode-ui="enabled: false"
   device-orientation-permission-ui="enabled: false"
-  cursor="rayOrigin: mouse"
-  raycaster="objects: .hotspot; far: 100">
+  >
   <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
   <a-entity id="cover" mindar-image-target="targetIndex: 0">
     <!-- Coordenadas relativas a la portada 610 x 786 px (ancho de la imagen = 1 unidad AR). -->
@@ -75,11 +74,46 @@ byId('cover').addEventListener('targetLost',()=>{visible=false;byId('status').te
 const scene=byId('scene');
 scene.addEventListener('arReady',()=>{byId('status').textContent='Cámara lista. Apunta a la portada.'});
 scene.addEventListener('arError',()=>{byId('status').textContent='No se pudo iniciar MindAR. Comprueba permisos y recarga.'});
-document.querySelectorAll('.hotspot').forEach(obj=>obj.addEventListener('click',()=>{
-  if(!visible||selected.has(obj.id))return;
-  selected.add(obj.id);obj.setAttribute('material','color: #fff2aa; opacity: 0.58; transparent: true; side: double');
-  if(audioContext)beep(783.99,.06);say('¡Muy bien! ⭐');update();
-}));
+// Detectar el toque real sobre el visor, sin depender del cursor sintetico de A-Frame.
+// El rayo 3D sale exactamente del punto que el nino toca en pantalla.
+const hitRaycaster = new THREE.Raycaster();
+const touchPoint = new THREE.Vector2();
+function registerHit(obj) {
+  if (!visible || selected.has(obj.id)) return;
+  selected.add(obj.id);
+  obj.setAttribute('material', 'color: #fff2aa; opacity: 0.58; transparent: true; side: double');
+  if (audioContext) beep(783.99, .06);
+  say('¡Muy bien! ⭐');
+  update();
+}
+function detectTouch(event) {
+  // No interferir con los botones de musica, reinicio o la interfaz.
+  if (event.target.closest && event.target.closest('#top, #bottom, #congrats, button')) return;
+  if (!visible || !scene.renderer || !scene.camera) return;
+  const canvas = scene.renderer.domElement;
+  const rect = canvas.getBoundingClientRect();
+  const x = event.clientX, y = event.clientY;
+  if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) return;
+  touchPoint.set(((x - rect.left) / rect.width) * 2 - 1,
+                 -((y - rect.top) / rect.height) * 2 + 1);
+  // Actualizar matrices 3D antes de calcular la interseccion.
+  scene.object3D.updateMatrixWorld(true);
+  scene.camera.updateMatrixWorld(true);
+  hitRaycaster.setFromCamera(touchPoint, scene.camera);
+  const candidates = [...document.querySelectorAll('.hotspot')]
+    .filter(el => !selected.has(el.id))
+    .map(el => el.getObject3D('mesh'))
+    .filter(Boolean);
+  const hits = hitRaycaster.intersectObjects(candidates, true);
+  if (hits.length) {
+    let node = hits[0].object;
+    while (node && !(node.el && node.el.classList.contains('hotspot'))) node = node.parent;
+    if (node && node.el) registerHit(node.el);
+  } else {
+    byId('status').textContent = 'Toque recibido. Prueba directamente sobre un circulo del libro.';
+  }
+}
+document.addEventListener('pointerdown', detectTouch, {capture: true, passive: true});
 byId('music').addEventListener('click',toggleMusic);
 byId('reset').addEventListener('click',()=>{
   selected.clear();document.querySelectorAll('.hotspot').forEach(obj=>obj.setAttribute('material','color: #ffe29a; opacity: 0.12; transparent: true; side: double'));
