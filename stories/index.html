@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#192a43">
+<title>El lugar donde terminan los cuentos — Juego AR</title>
+<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent;font-family:Arial,sans-serif;color:white}
+#top{position:fixed;z-index:30;top:max(10px,env(safe-area-inset-top));left:10px;right:10px;text-align:center;pointer-events:none}
+#question{display:inline-block;max-width:540px;background:rgba(14,31,51,.9);border:1px solid #e2cb93;border-radius:18px;padding:16px 18px;font-size:clamp(21px,5.3vw,30px);font-weight:800;line-height:1.35;text-wrap:balance;letter-spacing:.1px}
+#progress{display:block;width:max-content;margin:8px auto;padding:7px 12px;background:rgba(14,31,51,.85);border-radius:20px;font-weight:bold;font-size:14px}
+#bottom{position:fixed;z-index:30;bottom:max(12px,env(safe-area-inset-bottom));left:10px;right:10px;display:flex;justify-content:space-between;align-items:end;gap:8px}
+#status{font-size:13px;max-width:60%;line-height:1.45;padding:10px 12px;background:rgba(14,31,51,.88);border-radius:13px}
+#controls{display:flex;gap:6px}button{font-size:13px;font-weight:bold;background:#fff0cf;color:#192a43;border:0;padding:11px 12px;border-radius:12px;cursor:pointer}
+#congrats{position:fixed;z-index:32;top:45%;left:50%;transform:translate(-50%,-50%) scale(.85);opacity:0;pointer-events:none;background:#fff0cf;color:#15364b;padding:17px 24px;border-radius:20px;font-size:clamp(24px,5vw,34px);font-weight:bold;text-align:center;box-shadow:0 8px 30px #0008;transition:opacity .15s,transform .15s;max-width:90vw}
+#congrats.visible{opacity:1;transform:translate(-50%,-50%) scale(1)}
+#celebration{position:fixed;inset:0;z-index:31;pointer-events:none;overflow:hidden}
+.sparkle{position:absolute;left:0;top:0;will-change:transform,opacity;animation:burst 1100ms ease-out forwards;filter:drop-shadow(0 1px 3px #0005);font-size:clamp(18px,4vw,30px)}
+@keyframes burst{0%{transform:translate(-50%,-50%) scale(.35) rotate(0);opacity:0}15%{opacity:1}80%{opacity:1}100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(.85) rotate(var(--spin));opacity:0}}
+#finishScreen{position:fixed;inset:0;z-index:45;display:flex;align-items:center;justify-content:center;padding:22px;background:rgba(10,26,47,.80);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+#finishScreen[hidden]{display:none}
+#finishCard{width:min(94vw,430px);padding:32px 24px 28px;border:2px solid #e2cb93;border-radius:26px;background:linear-gradient(155deg,#fff8e8,#ffecc5);color:#15364b;text-align:center;box-shadow:0 18px 55px rgba(0,0,0,.35);animation:appear .45s ease-out both}
+#finishIcon{font-size:54px;margin-bottom:10px}
+#finishTitle{font-size:clamp(27px,7vw,38px);font-weight:900;line-height:1.15;margin:0 0 12px}
+#finishText{font-size:clamp(17px,4.5vw,21px);line-height:1.4;margin:0 0 24px}
+#replay{font-size:clamp(20px,5.4vw,24px);padding:16px 24px;border-radius:17px;background:#17436a;color:#fff;width:100%;min-height:58px;box-shadow:0 5px 0 #0b2942}
+#replay:active{transform:translateY(3px);box-shadow:0 2px 0 #0b2942}
+@keyframes appear{from{opacity:0;transform:scale(.85) translateY(16px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@media(prefers-reduced-motion:reduce){.sparkle{animation-duration:250ms}#finishCard{animation:none}}
+</style>
+</head>
+<body>
+<div id="top"><div id="question">¿Puedes encontrar un corazón y tres aviones de papel?</div><div id="progress">❤️ 0 de 1 · ✈️ 0 de 3</div></div>
+<div id="celebration" aria-hidden="true"></div>
+<div id="congrats" role="status" aria-live="polite">¡Muy bien! ⭐</div>
+<div id="finishScreen" role="dialog" aria-modal="true" aria-labelledby="finishTitle" hidden>
+  <div id="finishCard">
+    <div id="finishIcon" aria-hidden="true">🎉⭐🎉</div>
+    <h2 id="finishTitle">¿Listo para la próxima aventura?</h2>
+    <p id="finishText">¡Encontraste el corazón y los tres aviones de papel!</p>
+    <button type="button" id="replay">📖 Explorar otra página</button>
+  </div>
+</div>
+<div id="bottom"><div id="status">Preparando cámara AR…</div><div id="controls"><button id="music" type="button">♫ Activar música</button><button id="reset" type="button">↻ Reiniciar</button></div></div>
+<a-scene id="scene"
+  mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 1;"
+  color-space="sRGB"
+  renderer="colorManagement: true; physicallyCorrectLights: true"
+  vr-mode-ui="enabled: false"
+  device-orientation-permission-ui="enabled: false"
+  >
+  <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+  <a-entity id="cover" mindar-image-target="targetIndex: 0">
+    <!-- Coordenadas relativas a la portada 610 x 786 px (ancho de la imagen = 1 unidad AR). -->
+    <a-circle id="heart" class="hotspot" data-type="heart" position="-0.018 -0.416 0.025" radius="0.071" segments="40" material="color: #ffe29a; opacity: 0.12; transparent: true; side: double"></a-circle>
+    <a-circle id="plane1" class="hotspot" data-type="plane" position="0.123 0.190 0.025" radius="0.076" segments="40" material="color: #ffe29a; opacity: 0.12; transparent: true; side: double"></a-circle>
+    <a-circle id="plane2" class="hotspot" data-type="plane" position="0.025 0.075 0.025" radius="0.069" segments="40" material="color: #ffe29a; opacity: 0.12; transparent: true; side: double"></a-circle>
+    <a-circle id="plane3" class="hotspot" data-type="plane" position="0.177 -0.018 0.025" radius="0.075" segments="40" material="color: #ffe29a; opacity: 0.12; transparent: true; side: double"></a-circle>
+  </a-entity>
+  <a-entity id="page2" mindar-image-target="targetIndex: 1">
+    <!-- Tres crayones reales, en la parte inferior de la ilustración. -->
+    <!-- Posiciones estimadas de la foto de prueba; zonas horizontales para no tapar al niño. -->
+    <a-plane id="pencil-green" class="hotspot" data-type="pencil" position="-0.290 -0.540 0.025" width="0.245" height="0.092" rotation="0 0 -9" material="color: #ffe29a; opacity: 0.18; transparent: true; side: double"></a-plane>
+    <a-plane id="pencil-blue" class="hotspot" data-type="pencil" position="0.140 -0.490 0.025" width="0.220" height="0.092" rotation="0 0 -17" material="color: #ffe29a; opacity: 0.18; transparent: true; side: double"></a-plane>
+    <a-plane id="pencil-yellow" class="hotspot" data-type="pencil" position="0.330 -0.535 0.025" width="0.225" height="0.092" rotation="0 0 27" material="color: #ffe29a; opacity: 0.18; transparent: true; side: double"></a-plane>
+  </a-entity>
+  <!-- Página 3: las montañas empiezan cubiertas por una capa digital sin color. -->
+  <a-entity id="page3" mindar-image-target="targetIndex: 2">
+    <!-- Las superficies rectangulares conservan la detección táctil de V9. -->
+    <a-plane id="mountain-left" class="hotspot mountain-hotspot" data-type="mountain"
+      position="-0.286 0.012 0.025" width="0.230" height="0.245"
+      material="color: #fff4a8; opacity: 0.025; transparent: true; side: double">
+      <a-plane class="mountain-paint" position="0 0 0.004" width="0.230" height="0.245"
+        material="shader: flat; transparent: true; side: double"></a-plane>
+    </a-plane>
+    <a-plane id="mountain-center" class="hotspot mountain-hotspot" data-type="mountain"
+      position="0.146 0.026 0.025" width="0.245" height="0.250"
+      material="color: #fff4a8; opacity: 0.025; transparent: true; side: double">
+      <a-plane class="mountain-paint" position="0 0 0.004" width="0.245" height="0.250"
+        material="shader: flat; transparent: true; side: double"></a-plane>
+    </a-plane>
+    <a-plane id="mountain-right" class="hotspot mountain-hotspot" data-type="mountain"
+      position="0.350 0.003 0.025" width="0.215" height="0.250"
+      material="color: #fff4a8; opacity: 0.025; transparent: true; side: double">
+      <a-plane class="mountain-paint" position="0 0 0.004" width="0.215" height="0.250"
+        material="shader: flat; transparent: true; side: double"></a-plane>
+    </a-plane>
+  </a-entity>
+</a-scene>
+<script>
+const byId = id => document.getElementById(id);
+const selected = new Set();
+let visible = false, activePage = null, messageTimer, finishTimer = null, gameFinished = false;
+let audioContext = null, musicTimer = null, musicEnabled = false, note = 0;
+// Melodía instrumental suave, creada directamente en el navegador.
+// No requiere plataformas, pistas de terceros ni archivos de audio.
+const melody = [392, 440, 523.25, 440, 349.23, 392, 493.88, 392,
+                329.63, 392, 440, 523.25, 587.33, 523.25, 440, 392];
+function ensureAudio(){
+  try {
+    if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioContext.state === 'suspended') audioContext.resume().catch(()=>{});
+    return true;
+  } catch (err) { byId('status').textContent='El sonido no está disponible en este navegador.'; return false; }
+}
+function tone(freq, start, duration, volume, shape='sine') {
+  if (!audioContext) return;
+  const osc=audioContext.createOscillator(), gain=audioContext.createGain();
+  osc.type=shape;osc.frequency.setValueAtTime(freq,start);
+  gain.gain.setValueAtTime(0.0001,start);
+  gain.gain.exponentialRampToValueAtTime(Math.max(0.0002,volume),start+0.035);
+  gain.gain.exponentialRampToValueAtTime(0.0001,start+duration);
+  osc.connect(gain);gain.connect(audioContext.destination);
+  osc.start(start);osc.stop(start+duration+0.03);
+}
+function playMusicNote(){
+  if (!musicEnabled || !audioContext) return;
+  const now=audioContext.currentTime+0.015;
+  const freq=melody[note++ % melody.length];
+  tone(freq,now,0.63,0.019);
+  if (note%4===1) tone(freq/2,now,1.1,0.008);
+}
+function startMusic(){
+  if (!ensureAudio()) return;
+  musicEnabled=true;
+  clearInterval(musicTimer);
+  byId('music').textContent='♫ Silenciar música';
+  playMusicNote();musicTimer=setInterval(playMusicNote,670);
+}
+function stopMusic(){
+  musicEnabled=false;clearInterval(musicTimer);musicTimer=null;
+  byId('music').textContent='♫ Activar música';
+}
+function toggleMusic(){musicEnabled?stopMusic():startMusic()}
+function celebrateSound(final=false){
+  if (!ensureAudio()) return;
+  const t=audioContext.currentTime+0.01;
+  const notes=final?[523.25,659.25,783.99,1046.5]:[659.25,783.99,1046.5];
+  notes.forEach((hz,i)=>tone(hz,t+i*0.115,0.33,0.075,'sine'));
+}
+function sparkle(x,y,final=false){
+  const layer=byId('celebration');
+  const emojis=final?['⭐','✨','🎉','🌟','💛','✨']:['⭐','✨','🌟','💛'];
+  const count=final?22:13;
+  for(let i=0;i<count;i++){
+    const el=document.createElement('span');
+    const angle=(Math.PI*2*i/count)+Math.random()*.3;
+    const r=(final?95:65)+Math.random()*(final?105:75);
+    el.className='sparkle';el.textContent=emojis[i%emojis.length];
+    el.style.left=x+'px';el.style.top=y+'px';
+    el.style.setProperty('--dx',Math.cos(angle)*r+'px');
+    el.style.setProperty('--dy',Math.sin(angle)*r+'px');
+    el.style.setProperty('--spin',(Math.random()*150-75)+'deg');
+    layer.appendChild(el);
+    el.addEventListener('animationend',()=>el.remove(),{once:true});
+    setTimeout(()=>el.remove(),1500);
+  }
+}
+function say(message){
+  const node=byId('congrats');node.textContent=message;node.classList.add('visible');
+  clearTimeout(messageTimer);
+  messageTimer=setTimeout(()=>node.classList.remove('visible'),1600);
+}
+function update(){
+  if(activePage===2){
+    const count=['mountain-left','mountain-center','mountain-right'].filter(id=>selected.has(id)).length;
+    byId('progress').textContent=`🏔️ ${count} de 3`;
+    return count===3;
+  }
+  if(activePage===1){
+    const count=['pencil-green','pencil-blue','pencil-yellow'].filter(id=>selected.has(id)).length;
+    byId('progress').textContent=`✏️ ${count} de 3`;
+    return count===3;
+  }
+  const hearts=selected.has('heart')?1:0;
+  const planes=['plane1','plane2','plane3'].filter(id=>selected.has(id)).length;
+  byId('progress').textContent=`❤️ ${hearts} de 1 · ✈️ ${planes} de 3`;
+  return hearts===1&&planes===3;
+}
+const pages={
+  0:{entity:'cover',question:'¿Puedes encontrar un corazón y tres aviones de papel?',instruction:'Toca el corazón y los tres aviones.',ending:'¡Encontraste el corazón y los tres aviones de papel!'},
+  1:{entity:'page2',question:'¿Puedes encontrar tres crayones de colores?',instruction:'Toca los tres crayones de colores.',ending:'¡Encontraste los tres crayones de colores!'},
+  2:{entity:'page3',question:'¿Me ayudas a pintar las tres montañas?',instruction:'Las montañas aparecen blancas: toca cada una y observa cómo se pinta.',ending:'¡Qué bonitas quedaron las tres montañas!'}
+};
+function selectPage(index){
+  if(activePage!==index){
+    activePage=index;
+    resetGame();
+  }
+  visible=true;
+  byId('question').textContent=pages[index].question;
+  byId('finishText').textContent=pages[index].ending;
+  update();
+  byId('status').textContent='¡Página reconocida! '+pages[index].instruction;
+}
+Object.entries(pages).forEach(([index,data])=>{
+  const el=byId(data.entity);
+  el.addEventListener('targetFound',()=>selectPage(Number(index)));
+  el.addEventListener('targetLost',()=>{
+    if(activePage===Number(index)){
+      visible=false;
+      byId('status').textContent='Vuelve a apuntar a la página del libro.';
+    }
+  });
+});
+const scene=byId('scene');
+scene.addEventListener('arReady',()=>{byId('status').textContent='Cámara lista. Apunta a la portada o a las páginas 2 y 3.'});
+scene.addEventListener('arError',()=>{byId('status').textContent='No se pudo iniciar MindAR. Comprueba permisos y recarga.'});
+
+// Mantenemos exactamente el sistema de detección táctil de V3.
+const hitRaycaster=new THREE.Raycaster();
+const touchPoint=new THREE.Vector2();
+// Pintura progresiva real en una textura 2D anclada a la montaña 3D.
+// Una máscara clara tapa digitalmente el color de la página física;
+// el niño toca y los trazos de color la van reemplazando.
+const mountainPaints=new Map();
+const mountainColors={
+  'mountain-left':'#55bd89',
+  'mountain-center':'#59a9e8',
+  'mountain-right':'#e4ae5c'
+};
+function drawMountainPaint(item,progress){
+  const {ctx,texture,canvas,color}=item;
+  const w=canvas.width,h=canvas.height;
+  ctx.clearRect(0,0,w,h);
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(w*0.5,h*0.08);
+  ctx.lineTo(w*0.97,h*0.93);
+  ctx.lineTo(w*0.03,h*0.93);
+  ctx.closePath();
+  ctx.clip();
+  // Antes del toque la montaña se ve blanca (sin pintar).
+  ctx.fillStyle='rgba(251,249,243,0.96)';
+  ctx.fillRect(0,0,w,h);
+  if(progress>0){
+    // El color sube como pinceladas sucesivas, no aparece de golpe.
+    const top=h*(0.96-0.92*Math.min(1,progress));
+    ctx.fillStyle=color;
+    ctx.fillRect(0,top,w,h-top);
+    // Pinceladas luminosas, dibujadas solo dentro de la montaña.
+    ctx.strokeStyle='rgba(255,255,255,0.22)';
+    ctx.lineWidth=9;
+    ctx.lineCap='round';
+    for(let i=0;i<10;i++){
+      const y=h*0.93-i*22;
+      if(y<top+8)continue;
+      ctx.beginPath();
+      ctx.moveTo(w*0.08+(i%3)*16,y);
+      ctx.lineTo(w*0.90-(i%2)*16,y-9);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+  // Contorno para que la forma sea distinguible sin ocultar toda la página.
+  ctx.beginPath();
+  ctx.moveTo(w*0.5,h*0.08);
+  ctx.lineTo(w*0.97,h*0.93);
+  ctx.lineTo(w*0.03,h*0.93);
+  ctx.closePath();
+  ctx.strokeStyle='rgba(31,70,93,0.55)';
+  ctx.lineWidth=3;
+  ctx.stroke();
+  texture.needsUpdate=true;
+}
+function initializeMountainPaint(){
+  document.querySelectorAll('.mountain-hotspot').forEach(hotspot=>{
+    if(mountainPaints.has(hotspot.id))return;
+    const layer=hotspot.querySelector('.mountain-paint');
+    const mesh=layer && layer.getObject3D('mesh');
+    if(!mesh)return;
+    const canvas=document.createElement('canvas');
+    canvas.width=256;canvas.height=256;
+    const texture=new THREE.CanvasTexture(canvas);
+    texture.colorSpace=THREE.SRGBColorSpace;
+    const oldMaterial=mesh.material;
+    mesh.material=new THREE.MeshBasicMaterial({map:texture,transparent:true,side:THREE.DoubleSide,depthWrite:false,toneMapped:false});
+    if(oldMaterial)oldMaterial.dispose();
+    const item={canvas,ctx:canvas.getContext('2d'),texture,color:mountainColors[hotspot.id],frame:null};
+    mountainPaints.set(hotspot.id,item);
+    drawMountainPaint(item,0);
+  });
+}
+function paintMountain(id){
+  initializeMountainPaint();
+  const item=mountainPaints.get(id);
+  if(!item)return;
+  if(item.frame)cancelAnimationFrame(item.frame);
+  const start=performance.now(),duration=1400;
+  const step=(now)=>{
+    const p=Math.min(1,(now-start)/duration);
+    const eased=1-Math.pow(1-p,2);
+    drawMountainPaint(item,eased);
+    item.frame=p<1?requestAnimationFrame(step):null;
+  };
+  item.frame=requestAnimationFrame(step);
+}
+byId('scene').addEventListener('loaded',initializeMountainPaint);
+setTimeout(initializeMountainPaint,1800);
+function registerHit(obj,x,y){
+  if(gameFinished || !visible || selected.has(obj.id))return;
+  selected.add(obj.id);
+  if(obj.dataset.type==='mountain'){
+    paintMountain(obj.id);
+  }else{
+    obj.setAttribute('material','color: #fff2aa; opacity: 0.58; transparent: true; side: double');
+  }
+  // El primer toque válido desbloquea el sonido en iPhone y comienza la melodía.
+  if(!musicEnabled && !userMutedMusic) startMusic();
+  const finished=update();
+  celebrateSound(finished);
+  sparkle(x,y,finished);
+  if(finished){
+    gameFinished=true;
+    byId('status').textContent=activePage===2?'¡Has pintado las tres montañas!':'¡Has encontrado todos los elementos!';
+    say(activePage===2?'¡Fantástico! ¡Las pintaste! 🎨':'¡Fantástico! ¡Encontraste todo! 🎉');
+    // La celebración ocupa la pantalla y luego invita a explorar otra página.
+    setTimeout(()=>sparkle(window.innerWidth/2,window.innerHeight/2,true),360);
+    setTimeout(()=>sparkle(window.innerWidth/2,window.innerHeight/2,true),820);
+    clearTimeout(finishTimer);
+    finishTimer=setTimeout(()=>{byId('finishScreen').hidden=false;},2200);
+  }else{
+    say('¡Muy bien! ⭐');
+  }
+}
+let userMutedMusic=false;
+function detectTouch(event){
+  if(event.target.closest && event.target.closest('#top, #bottom, #congrats, button'))return;
+  if(gameFinished || !visible || !scene.renderer || !scene.camera)return;
+  const canvas=scene.renderer.domElement,rect=canvas.getBoundingClientRect();
+  const x=event.clientX,y=event.clientY;
+  if(x<rect.left || x>rect.right || y<rect.top || y>rect.bottom)return;
+  touchPoint.set(((x-rect.left)/rect.width)*2-1,-((y-rect.top)/rect.height)*2+1);
+  scene.object3D.updateMatrixWorld(true);
+  scene.camera.updateMatrixWorld(true);
+  hitRaycaster.setFromCamera(touchPoint,scene.camera);
+  const root=byId(pages[activePage].entity);
+  const candidates=[...root.querySelectorAll('.hotspot')]
+    .filter(el=>!selected.has(el.id)).map(el=>el.getObject3D('mesh')).filter(Boolean);
+  const hits=hitRaycaster.intersectObjects(candidates,true);
+  if(hits.length){
+    let node=hits[0].object;
+    while(node && !(node.el && node.el.classList.contains('hotspot')))node=node.parent;
+    if(node&&node.el)registerHit(node.el,x,y);
+  }else{
+    byId('status').textContent='Toque recibido. Prueba sobre uno de los objetos señalados.';
+  }
+}
+document.addEventListener('pointerdown',detectTouch,{capture:true,passive:true});
+byId('music').addEventListener('click',()=>{
+  if(musicEnabled){userMutedMusic=true;stopMusic()}
+  else{userMutedMusic=false;startMusic()}
+});
+function resetGame(){
+  clearTimeout(finishTimer);finishTimer=null;gameFinished=false;
+  byId('finishScreen').hidden=true;
+  clearTimeout(messageTimer);
+  selected.clear();
+  document.querySelectorAll('.hotspot').forEach(obj=>{
+    if(obj.dataset.type==='mountain')obj.setAttribute('material','color: #fff4a8; opacity: 0.025; transparent: true; side: double');
+    else if(obj.dataset.type==='pencil')obj.setAttribute('material','color: #ffe29a; opacity: 0.18; transparent: true; side: double');
+    else obj.setAttribute('material','color: #ffe29a; opacity: 0.12; transparent: true; side: double');
+  });
+  initializeMountainPaint();
+  mountainPaints.forEach(item=>{if(item.frame)cancelAnimationFrame(item.frame);item.frame=null;drawMountainPaint(item,0);});
+  byId('status').textContent=visible&&activePage!==null?'¡Página reconocida! '+pages[activePage].instruction:'Apunta a una página del libro.';
+  byId('congrats').classList.remove('visible');
+  byId('celebration').replaceChildren();
+  update();
+}
+byId('reset').addEventListener('click',resetGame);
+byId('replay').addEventListener('click',resetGame);
+window.addEventListener('pagehide',stopMusic);
+</script>
+</body>
+</html>

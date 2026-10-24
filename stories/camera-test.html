@@ -1,0 +1,60 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1">
+  <title>Prueba de cámara - Blanco Art House</title>
+  <style>
+    body {
+      background: #192a43;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 25px;
+    }
+    video {
+      width: 100%;
+      max-width: 500px;
+      background: black;
+      border-radius: 15px;
+    }
+    button {
+      padding: 15px 25px;
+      font-size: 18px;
+      margin: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Prueba de cámara</h2>
+  <button id="start">Abrir cámara</button>
+  <p id="status">Presiona el botón para comenzar.</p>
+  <video id="video" autoplay playsinline muted></video>
+
+  <script>
+    document.getElementById("start").onclick = async () => {
+      const status = document.getElementById("status");
+
+      try {
+        status.textContent = "Solicitando cámara...";
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: { facingMode: { ideal: "environment" } }
+        });
+
+        const video = document.getElementById("video");
+        video.srcObject = stream;
+        await video.play();
+
+        status.textContent = "¡Cámara funcionando!";
+      } catch (error) {
+        status.textContent =
+          "Error: " + error.name + " - " + error.message;
+      }
+    };
+  </script>
+</body>
+</html>

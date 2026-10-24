@@ -1,0 +1,96 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1">
+  <title>Prueba AR - Blanco Art House</title>
+
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
+  <style>
+    body { margin: 0; overflow: hidden; }
+    #status {
+      position: fixed;
+      top: 15px;
+      left: 5%;
+      width: 90%;
+      box-sizing: border-box;
+      padding: 14px;
+      background: #192a43;
+      color: white;
+      border-radius: 12px;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      z-index: 9999;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="status">Preparando reconocimiento AR...</div>
+
+  <a-scene
+    mindar-image="imageTargetSrc: ./targets.mind;"
+    color-space="sRGB"
+    renderer="colorManagement: true, physicallyCorrectLights: true"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false">
+
+    <a-camera
+      position="0 0 0"
+      look-controls="enabled: false">
+    </a-camera>
+
+    <a-entity id="portada"
+      mindar-image-target="targetIndex: 0">
+
+      <a-plane
+        color="#44FF88"
+        opacity="0.55"
+        position="0 0 0.01"
+        width="0.45"
+        height="0.12">
+      </a-plane>
+
+    </a-entity>
+  </a-scene>
+
+  <script>
+    const status = document.getElementById("status");
+    const portada = document.getElementById("portada");
+
+    fetch("./targets.mind").then(response => {
+      if (!response.ok) {
+        status.textContent =
+          "Error: no se encuentra targets.mind";
+      }
+    }).catch(() => {
+      status.textContent =
+        "Error al cargar el archivo de reconocimiento";
+    });
+
+    portada.addEventListener("targetFound", () => {
+      status.textContent = "¡Portada reconocida!";
+    });
+
+    portada.addEventListener("targetLost", () => {
+      status.textContent = "Apunta nuevamente a la portada";
+    });
+
+    document.querySelector("a-scene")
+      .addEventListener("arReady", () => {
+        status.textContent =
+          "Cámara lista. Apunta al libro físico.";
+      });
+
+    document.querySelector("a-scene")
+      .addEventListener("arError", () => {
+        status.textContent =
+          "Error al iniciar MindAR";
+      });
+  </script>
+</body>
+</html>
