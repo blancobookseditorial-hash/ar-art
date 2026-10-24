@@ -67,6 +67,28 @@
     <a-plane id="pencil-blue" class="hotspot" data-type="pencil" position="0.140 -0.490 0.025" width="0.220" height="0.092" rotation="0 0 -17" material="color: #ffe29a; opacity: 0.18; transparent: true; side: double"></a-plane>
     <a-plane id="pencil-yellow" class="hotspot" data-type="pencil" position="0.330 -0.535 0.025" width="0.225" height="0.092" rotation="0 0 27" material="color: #ffe29a; opacity: 0.18; transparent: true; side: double"></a-plane>
   </a-entity>
+  <!-- Página 3: las montañas que el niño dejó sin pintar. -->
+  <a-entity id="page3" mindar-image-target="targetIndex: 2">
+    <!-- Las zonas transparentes reciben el toque; los triángulos aportan el color. -->
+    <a-plane id="mountain-left" class="hotspot mountain-hotspot" data-type="mountain"
+      position="-0.286 0.012 0.025" width="0.230" height="0.245"
+      material="color: #fff4a8; opacity: 0.09; transparent: true; side: double">
+      <a-triangle class="mountain-fill" vertex-a="-0.112 -0.116 0.002" vertex-b="0 0.120 0.002" vertex-c="0.112 -0.116 0.002"
+        material="color: #6ed69e; opacity: 0.03; transparent: true; side: double"></a-triangle>
+    </a-plane>
+    <a-plane id="mountain-center" class="hotspot mountain-hotspot" data-type="mountain"
+      position="0.146 0.026 0.025" width="0.245" height="0.250"
+      material="color: #fff4a8; opacity: 0.09; transparent: true; side: double">
+      <a-triangle class="mountain-fill" vertex-a="-0.118 -0.116 0.002" vertex-b="0 0.120 0.002" vertex-c="0.118 -0.116 0.002"
+        material="color: #63c5f2; opacity: 0.03; transparent: true; side: double"></a-triangle>
+    </a-plane>
+    <a-plane id="mountain-right" class="hotspot mountain-hotspot" data-type="mountain"
+      position="0.350 0.003 0.025" width="0.215" height="0.250"
+      material="color: #fff4a8; opacity: 0.09; transparent: true; side: double">
+      <a-triangle class="mountain-fill" vertex-a="-0.104 -0.119 0.002" vertex-b="0 0.120 0.002" vertex-c="0.104 -0.119 0.002"
+        material="color: #b6d67a; opacity: 0.03; transparent: true; side: double"></a-triangle>
+    </a-plane>
+  </a-entity>
 </a-scene>
 <script>
 const byId = id => document.getElementById(id);
@@ -143,6 +165,11 @@ function say(message){
   messageTimer=setTimeout(()=>node.classList.remove('visible'),1600);
 }
 function update(){
+  if(activePage===2){
+    const count=['mountain-left','mountain-center','mountain-right'].filter(id=>selected.has(id)).length;
+    byId('progress').textContent=`🏔️ ${count} de 3`;
+    return count===3;
+  }
   if(activePage===1){
     const count=['pencil-green','pencil-blue','pencil-yellow'].filter(id=>selected.has(id)).length;
     byId('progress').textContent=`✏️ ${count} de 3`;
@@ -155,7 +182,8 @@ function update(){
 }
 const pages={
   0:{entity:'cover',question:'¿Puedes encontrar un corazón y tres aviones de papel?',instruction:'Toca el corazón y los tres aviones.',ending:'¡Encontraste el corazón y los tres aviones de papel!'},
-  1:{entity:'page2',question:'¿Puedes encontrar tres crayones de colores?',instruction:'Toca los tres crayones de colores.',ending:'¡Encontraste los tres crayones de colores! Pronto habrá más páginas interactivas.'}
+  1:{entity:'page2',question:'¿Puedes encontrar tres crayones de colores?',instruction:'Toca los tres crayones de colores.',ending:'¡Encontraste los tres crayones de colores!'},
+  2:{entity:'page3',question:'¿Puedes ayudar a pintar tres montañas?',instruction:'Toca las tres montañas señaladas para llenarlas de color.',ending:'¡Terminaste de pintar las tres montañas!'}
 };
 function selectPage(index){
   if(activePage!==index){
@@ -179,7 +207,7 @@ Object.entries(pages).forEach(([index,data])=>{
   });
 });
 const scene=byId('scene');
-scene.addEventListener('arReady',()=>{byId('status').textContent='Cámara lista. Apunta a la portada o a la página 2.'});
+scene.addEventListener('arReady',()=>{byId('status').textContent='Cámara lista. Apunta a la portada o a las páginas 2 y 3.'});
 scene.addEventListener('arError',()=>{byId('status').textContent='No se pudo iniciar MindAR. Comprueba permisos y recarga.'});
 
 // Mantenemos exactamente el sistema de detección táctil de V3.
@@ -188,7 +216,14 @@ const touchPoint=new THREE.Vector2();
 function registerHit(obj,x,y){
   if(gameFinished || !visible || selected.has(obj.id))return;
   selected.add(obj.id);
-  obj.setAttribute('material','color: #fff2aa; opacity: 0.58; transparent: true; side: double');
+  if(obj.dataset.type==='mountain'){
+    // La montaña cambia de color al tocarla: conservamos el área táctil discreta.
+    obj.setAttribute('material','color: #fff2aa; opacity: 0.07; transparent: true; side: double');
+    const fill=obj.querySelector('.mountain-fill');
+    if(fill)fill.setAttribute('material','opacity',0.68);
+  }else{
+    obj.setAttribute('material','color: #fff2aa; opacity: 0.58; transparent: true; side: double');
+  }
   // El primer toque válido desbloquea el sonido en iPhone y comienza la melodía.
   if(!musicEnabled && !userMutedMusic) startMusic();
   const finished=update();
@@ -218,7 +253,7 @@ function detectTouch(event){
   scene.object3D.updateMatrixWorld(true);
   scene.camera.updateMatrixWorld(true);
   hitRaycaster.setFromCamera(touchPoint,scene.camera);
-  const root=activePage===0?byId('cover'):byId('page2');
+  const root=byId(pages[activePage].entity);
   const candidates=[...root.querySelectorAll('.hotspot')]
     .filter(el=>!selected.has(el.id)).map(el=>el.getObject3D('mesh')).filter(Boolean);
   const hits=hitRaycaster.intersectObjects(candidates,true);
@@ -240,7 +275,12 @@ function resetGame(){
   byId('finishScreen').hidden=true;
   clearTimeout(messageTimer);
   selected.clear();
-  document.querySelectorAll('.hotspot').forEach(obj=>obj.setAttribute('material','color: #ffe29a; opacity: 0.12; transparent: true; side: double'));
+  document.querySelectorAll('.hotspot').forEach(obj=>{
+    if(obj.dataset.type==='mountain')obj.setAttribute('material','color: #fff4a8; opacity: 0.09; transparent: true; side: double');
+    else if(obj.dataset.type==='pencil')obj.setAttribute('material','color: #ffe29a; opacity: 0.18; transparent: true; side: double');
+    else obj.setAttribute('material','color: #ffe29a; opacity: 0.12; transparent: true; side: double');
+  });
+  document.querySelectorAll('.mountain-fill').forEach(fill=>fill.setAttribute('material','opacity',0.03));
   byId('status').textContent=visible&&activePage!==null?'¡Página reconocida! '+pages[activePage].instruction:'Apunta a una página del libro.';
   byId('congrats').classList.remove('visible');
   byId('celebration').replaceChildren();
