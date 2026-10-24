@@ -90,6 +90,13 @@
       "format": "shirt",
       "status": "registered",
       "image": "/artwork-images/Anatomia-de-una-isla-shirt.jpeg"
+    },
+    {
+      "work": "A Dream of Wings",
+      "edition": "00224102026",
+      "format": "Painting",
+      "status": "registered",
+      "image": "/artwork-images/a-dream-of-wings-acrylic.jpg"
     }
   ]
 }
