@@ -67,26 +67,26 @@
     <a-plane id="pencil-blue" class="hotspot" data-type="pencil" position="0.140 -0.490 0.025" width="0.220" height="0.092" rotation="0 0 -17" material="color: #ffe29a; opacity: 0.18; transparent: true; side: double"></a-plane>
     <a-plane id="pencil-yellow" class="hotspot" data-type="pencil" position="0.330 -0.535 0.025" width="0.225" height="0.092" rotation="0 0 27" material="color: #ffe29a; opacity: 0.18; transparent: true; side: double"></a-plane>
   </a-entity>
-  <!-- Página 3: las montañas que el niño dejó sin pintar. -->
+  <!-- Página 3: las montañas empiezan cubiertas por una capa digital sin color. -->
   <a-entity id="page3" mindar-image-target="targetIndex: 2">
-    <!-- Las zonas transparentes reciben el toque; los triángulos aportan el color. -->
+    <!-- Las superficies rectangulares conservan la detección táctil de V9. -->
     <a-plane id="mountain-left" class="hotspot mountain-hotspot" data-type="mountain"
       position="-0.286 0.012 0.025" width="0.230" height="0.245"
-      material="color: #fff4a8; opacity: 0.09; transparent: true; side: double">
-      <a-triangle class="mountain-fill" vertex-a="-0.112 -0.116 0.002" vertex-b="0 0.120 0.002" vertex-c="0.112 -0.116 0.002"
-        material="color: #6ed69e; opacity: 0.03; transparent: true; side: double"></a-triangle>
+      material="color: #fff4a8; opacity: 0.025; transparent: true; side: double">
+      <a-plane class="mountain-paint" position="0 0 0.004" width="0.230" height="0.245"
+        material="shader: flat; transparent: true; side: double"></a-plane>
     </a-plane>
     <a-plane id="mountain-center" class="hotspot mountain-hotspot" data-type="mountain"
       position="0.146 0.026 0.025" width="0.245" height="0.250"
-      material="color: #fff4a8; opacity: 0.09; transparent: true; side: double">
-      <a-triangle class="mountain-fill" vertex-a="-0.118 -0.116 0.002" vertex-b="0 0.120 0.002" vertex-c="0.118 -0.116 0.002"
-        material="color: #63c5f2; opacity: 0.03; transparent: true; side: double"></a-triangle>
+      material="color: #fff4a8; opacity: 0.025; transparent: true; side: double">
+      <a-plane class="mountain-paint" position="0 0 0.004" width="0.245" height="0.250"
+        material="shader: flat; transparent: true; side: double"></a-plane>
     </a-plane>
     <a-plane id="mountain-right" class="hotspot mountain-hotspot" data-type="mountain"
       position="0.350 0.003 0.025" width="0.215" height="0.250"
-      material="color: #fff4a8; opacity: 0.09; transparent: true; side: double">
-      <a-triangle class="mountain-fill" vertex-a="-0.104 -0.119 0.002" vertex-b="0 0.120 0.002" vertex-c="0.104 -0.119 0.002"
-        material="color: #b6d67a; opacity: 0.03; transparent: true; side: double"></a-triangle>
+      material="color: #fff4a8; opacity: 0.025; transparent: true; side: double">
+      <a-plane class="mountain-paint" position="0 0 0.004" width="0.215" height="0.250"
+        material="shader: flat; transparent: true; side: double"></a-plane>
     </a-plane>
   </a-entity>
 </a-scene>
@@ -183,7 +183,7 @@ function update(){
 const pages={
   0:{entity:'cover',question:'¿Puedes encontrar un corazón y tres aviones de papel?',instruction:'Toca el corazón y los tres aviones.',ending:'¡Encontraste el corazón y los tres aviones de papel!'},
   1:{entity:'page2',question:'¿Puedes encontrar tres crayones de colores?',instruction:'Toca los tres crayones de colores.',ending:'¡Encontraste los tres crayones de colores!'},
-  2:{entity:'page3',question:'¿Puedes ayudar a pintar tres montañas?',instruction:'Toca las tres montañas señaladas para llenarlas de color.',ending:'¡Terminaste de pintar las tres montañas!'}
+  2:{entity:'page3',question:'¿Me ayudas a pintar las tres montañas?',instruction:'Las montañas aparecen blancas: toca cada una y observa cómo se pinta.',ending:'¡Qué bonitas quedaron las tres montañas!'}
 };
 function selectPage(index){
   if(activePage!==index){
@@ -213,14 +213,98 @@ scene.addEventListener('arError',()=>{byId('status').textContent='No se pudo ini
 // Mantenemos exactamente el sistema de detección táctil de V3.
 const hitRaycaster=new THREE.Raycaster();
 const touchPoint=new THREE.Vector2();
+// Pintura progresiva real en una textura 2D anclada a la montaña 3D.
+// Una máscara clara tapa digitalmente el color de la página física;
+// el niño toca y los trazos de color la van reemplazando.
+const mountainPaints=new Map();
+const mountainColors={
+  'mountain-left':'#55bd89',
+  'mountain-center':'#59a9e8',
+  'mountain-right':'#e4ae5c'
+};
+function drawMountainPaint(item,progress){
+  const {ctx,texture,canvas,color}=item;
+  const w=canvas.width,h=canvas.height;
+  ctx.clearRect(0,0,w,h);
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(w*0.5,h*0.08);
+  ctx.lineTo(w*0.97,h*0.93);
+  ctx.lineTo(w*0.03,h*0.93);
+  ctx.closePath();
+  ctx.clip();
+  // Antes del toque la montaña se ve blanca (sin pintar).
+  ctx.fillStyle='rgba(251,249,243,0.96)';
+  ctx.fillRect(0,0,w,h);
+  if(progress>0){
+    // El color sube como pinceladas sucesivas, no aparece de golpe.
+    const top=h*(0.96-0.92*Math.min(1,progress));
+    ctx.fillStyle=color;
+    ctx.fillRect(0,top,w,h-top);
+    // Pinceladas luminosas, dibujadas solo dentro de la montaña.
+    ctx.strokeStyle='rgba(255,255,255,0.22)';
+    ctx.lineWidth=9;
+    ctx.lineCap='round';
+    for(let i=0;i<10;i++){
+      const y=h*0.93-i*22;
+      if(y<top+8)continue;
+      ctx.beginPath();
+      ctx.moveTo(w*0.08+(i%3)*16,y);
+      ctx.lineTo(w*0.90-(i%2)*16,y-9);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+  // Contorno para que la forma sea distinguible sin ocultar toda la página.
+  ctx.beginPath();
+  ctx.moveTo(w*0.5,h*0.08);
+  ctx.lineTo(w*0.97,h*0.93);
+  ctx.lineTo(w*0.03,h*0.93);
+  ctx.closePath();
+  ctx.strokeStyle='rgba(31,70,93,0.55)';
+  ctx.lineWidth=3;
+  ctx.stroke();
+  texture.needsUpdate=true;
+}
+function initializeMountainPaint(){
+  document.querySelectorAll('.mountain-hotspot').forEach(hotspot=>{
+    if(mountainPaints.has(hotspot.id))return;
+    const layer=hotspot.querySelector('.mountain-paint');
+    const mesh=layer && layer.getObject3D('mesh');
+    if(!mesh)return;
+    const canvas=document.createElement('canvas');
+    canvas.width=256;canvas.height=256;
+    const texture=new THREE.CanvasTexture(canvas);
+    texture.colorSpace=THREE.SRGBColorSpace;
+    const oldMaterial=mesh.material;
+    mesh.material=new THREE.MeshBasicMaterial({map:texture,transparent:true,side:THREE.DoubleSide,depthWrite:false,toneMapped:false});
+    if(oldMaterial)oldMaterial.dispose();
+    const item={canvas,ctx:canvas.getContext('2d'),texture,color:mountainColors[hotspot.id],frame:null};
+    mountainPaints.set(hotspot.id,item);
+    drawMountainPaint(item,0);
+  });
+}
+function paintMountain(id){
+  initializeMountainPaint();
+  const item=mountainPaints.get(id);
+  if(!item)return;
+  if(item.frame)cancelAnimationFrame(item.frame);
+  const start=performance.now(),duration=1400;
+  const step=(now)=>{
+    const p=Math.min(1,(now-start)/duration);
+    const eased=1-Math.pow(1-p,2);
+    drawMountainPaint(item,eased);
+    item.frame=p<1?requestAnimationFrame(step):null;
+  };
+  item.frame=requestAnimationFrame(step);
+}
+byId('scene').addEventListener('loaded',initializeMountainPaint);
+setTimeout(initializeMountainPaint,1800);
 function registerHit(obj,x,y){
   if(gameFinished || !visible || selected.has(obj.id))return;
   selected.add(obj.id);
   if(obj.dataset.type==='mountain'){
-    // La montaña cambia de color al tocarla: conservamos el área táctil discreta.
-    obj.setAttribute('material','color: #fff2aa; opacity: 0.07; transparent: true; side: double');
-    const fill=obj.querySelector('.mountain-fill');
-    if(fill)fill.setAttribute('material','opacity',0.68);
+    paintMountain(obj.id);
   }else{
     obj.setAttribute('material','color: #fff2aa; opacity: 0.58; transparent: true; side: double');
   }
@@ -231,8 +315,8 @@ function registerHit(obj,x,y){
   sparkle(x,y,finished);
   if(finished){
     gameFinished=true;
-    byId('status').textContent='¡Has encontrado todos los elementos!';
-    say('¡Fantástico! ¡Encontraste todo! 🎉');
+    byId('status').textContent=activePage===2?'¡Has pintado las tres montañas!':'¡Has encontrado todos los elementos!';
+    say(activePage===2?'¡Fantástico! ¡Las pintaste! 🎨':'¡Fantástico! ¡Encontraste todo! 🎉');
     // La celebración ocupa la pantalla y luego invita a explorar otra página.
     setTimeout(()=>sparkle(window.innerWidth/2,window.innerHeight/2,true),360);
     setTimeout(()=>sparkle(window.innerWidth/2,window.innerHeight/2,true),820);
@@ -276,11 +360,12 @@ function resetGame(){
   clearTimeout(messageTimer);
   selected.clear();
   document.querySelectorAll('.hotspot').forEach(obj=>{
-    if(obj.dataset.type==='mountain')obj.setAttribute('material','color: #fff4a8; opacity: 0.09; transparent: true; side: double');
+    if(obj.dataset.type==='mountain')obj.setAttribute('material','color: #fff4a8; opacity: 0.025; transparent: true; side: double');
     else if(obj.dataset.type==='pencil')obj.setAttribute('material','color: #ffe29a; opacity: 0.18; transparent: true; side: double');
     else obj.setAttribute('material','color: #ffe29a; opacity: 0.12; transparent: true; side: double');
   });
-  document.querySelectorAll('.mountain-fill').forEach(fill=>fill.setAttribute('material','opacity',0.03));
+  initializeMountainPaint();
+  mountainPaints.forEach(item=>{if(item.frame)cancelAnimationFrame(item.frame);item.frame=null;drawMountainPaint(item,0);});
   byId('status').textContent=visible&&activePage!==null?'¡Página reconocida! '+pages[activePage].instruction:'Apunta a una página del libro.';
   byId('congrats').classList.remove('visible');
   byId('celebration').replaceChildren();
