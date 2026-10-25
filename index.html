@@ -361,6 +361,7 @@ const pares = [
 
 
       let experienceStarted = false;
+      let authorizedArtwork = null;
       let soundUnlocked = false;
 
 
@@ -472,6 +473,7 @@ loadCertificateRegistry();
   }
 
   accessMessage.textContent = "";
+        authorizedArtwork = matchingCertificate.work.trim();
         experienceStarted = true;
 
         await unlockSound();
@@ -508,7 +510,14 @@ loadCertificateRegistry();
         if (!par.target || !par.video) return;
 
         par.target.addEventListener("targetFound", () => {
-
+if (
+  !experienceStarted ||
+  !authorizedArtwork ||
+  par.work.trim().toLowerCase() !== authorizedArtwork.trim().toLowerCase()
+) {
+  par.video.pause();
+  return;
+}
           instructions.style.display = "none";
 
           if (experienceStarted) {
