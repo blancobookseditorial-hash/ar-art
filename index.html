@@ -362,6 +362,7 @@ const pares = [
 
       let experienceStarted = false;
       let authorizedArtwork = null;
+      let allowedArtworks = [];
       let soundUnlocked = false;
 
 
@@ -380,60 +381,27 @@ const pares = [
        * toque. A partir de ahi los videos conservan el permiso.
        */
      
+
 async function unlockSound() {
   if (soundUnlocked) return;
 
-  // Preparar todos los videos sin permitir sonido ajeno.
+  // Preparar todos los videos sin reproducir ninguno.
   videos.forEach(v => {
     if (!v) return;
+
     v.pause();
     v.muted = true;
     v.volume = 0;
     v.currentTime = 0;
   });
 
-  // Solo el video autorizado participa en la preparación.
-  const selectedPair = pares.find(par =>
-    authorizedArtwork &&
-    par.work.trim().toLowerCase() ===
-      authorizedArtwork.trim().toLowerCase()
-  );
+  // Evitar que otros toques vuelvan a detener los videos.
+  soundUnlocked = true;
 
-  const selectedVideo = selectedPair?.video;
-
-  if (!selectedVideo) {
-    console.warn("No AR video for this certificate.");
-    return;
-  }
-
-  try {
-    selectedVideo.muted = true;
-    selectedVideo.volume = 0;
-
-   // Preparar el video sin iniciar su reproducción.
-selectedVideo.pause();
-selectedVideo.currentTime = 0;
-
-// El audio se activará mediante la interacción
-// del usuario cuando corresponda.
-soundUnlocked = false;
-  } catch (error) {
-    console.log("Audio preparation:", error);
-  } finally {
-    // Ningún video debe quedar reproduciéndose.
-    videos.forEach(v => {
-      if (!v) return;
-      v.pause();
-      v.muted = true;
-      v.volume = 0;
-    });
-
-    if (soundPrompt) {
-      soundPrompt.style.display = "none";
-    }
+  if (soundPrompt) {
+    soundPrompt.style.display = "none";
   }
 }
-
 
       /*
        * 1. El boton inicia la experiencia y pide el primer toque.
@@ -489,9 +457,55 @@ loadCertificateRegistry();
     return;
   }
 
+ 
+if (selectedArtwork === "__admin__" || selectedArtwork === "__puzzles__") {
+  const accessType =
+    selectedArtwork === "__admin__" ? "admin" : "puzzles";
+
+  accessMessage.textContent = "Verifying access...";
+
+  try {
+    const response = await fetch(
+      "/.netlify/functions/verify-ar-access",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          type: accessType,
+          code: enteredCode
+        })
+      }
+    );
+
+    const result = await response.json();
+
+    if (
+      !response.ok ||
+      !result.success ||
+      !Array.isArray(result.allowedArtworks)
+    ) {
+      accessMessage.textContent =
+        "Invalid access code. Please try again.";
+      return;
+    }
+
+    allowedArtworks = result.allowedArtworks;
+    authorizedArtwork = null;
+
+  } catch (error) {
+    console.error("AR access verification:", error);
+    accessMessage.textContent =
+      "Unable to verify access. Please try again.";
+    return;
+  }
+
+} else {
   const matchingCertificate = certificateRecords.find(record =>
     record.status === "registered" &&
-    record.work?.trim().toLowerCase() === selectedArtwork.toLowerCase() &&
+    record.work?.trim().toLowerCase() ===
+      selectedArtwork.toLowerCase() &&
     String(record.edition).trim() === enteredCode
   );
 
@@ -501,10 +515,12 @@ loadCertificateRegistry();
     return;
   }
 
-  accessMessage.textContent = "";
-        authorizedArtwork = matchingCertificate.work.trim();
-        experienceStarted = true;
+  authorizedArtwork = matchingCertificate.work.trim();
+  allowedArtworks = [authorizedArtwork];
+}
 
+accessMessage.textContent = "";
+experienceStarted = true;
         await unlockSound();
 
         startScreen.style.display = "none";
@@ -539,12 +555,15 @@ loadCertificateRegistry();
         if (!par.target || !par.video) return;
 
         par.target.addEventListener("targetFound", () => {
-if (
-  !experienceStarted ||
-  !authorizedArtwork ||
-  par.work.trim().toLowerCase() !== authorizedArtwork.trim().toLowerCase()
-) {
+const isAllowed =
+  experienceStarted &&
+  allowedArtworks.some(work =>
+    work.trim().toLowerCase() === par.work.trim().toLowerCase()
+  );
+
+if (!isAllowed) {
   par.video.pause();
+  par.video.muted = true;
   return;
 }
           instructions.style.display = "none";
