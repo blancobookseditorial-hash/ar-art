@@ -91,12 +91,40 @@
       "status": "registered",
       "image": "/artwork-images/Anatomia-de-una-isla-shirt.jpeg"
     },
-    {
+        {
       "work": "A Dream of Wings",
       "edition": "00224102026",
       "format": "Painting",
       "status": "registered",
       "image": "/artwork-images/a-dream-of-wings-acrylic.jpg"
+    },
+    {
+      "work": "Seths Dreams",
+      "edition": "00127092026",
+      "format": "Painting",
+      "status": "registered",
+      "image": "/artwork-images/seths-dreams-painting.jpg.jpeg"
+    },
+    {
+      "work": "Seths Dreams",
+      "edition": "00224102026",
+      "format": "Painting",
+      "status": "registered",
+      "image": "/artwork-images/seths-dreams-painting.jpg.jpeg"
+    },
+    {
+      "work": "Birth of Being",
+      "edition": "00224102026",
+      "format": "Sublimation Shirt",
+      "status": "registered",
+      "image": "/artwork-images/birth-of-being-sublimation-shirt.jpg.jpeg"
+    },
+    {
+      "work": "Unfolding the Sky",
+      "edition": "00224102026",
+      "format": "Painting",
+      "status": "registered",
+      "image": "/artwork-images/unfolding-the-sky-acrylic.jpg"
     }
   ]
 }
