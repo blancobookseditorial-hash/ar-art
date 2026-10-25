@@ -459,7 +459,13 @@ async function loadCertificateRegistry() {
         .filter(Boolean)
     )].sort((a, b) => a.localeCompare(b));
 
-    artworkSelect.replaceChildren(new Option("Select your artwork", ""));
+    
+artworkSelect.replaceChildren(
+  new Option("Select your artwork", ""),
+  new Option("Administrator Access", "__admin__"),
+  new Option("Puzzles", "__puzzles__")
+);
+
 
     names.forEach(name => {
       artworkSelect.add(new Option(name, name));
