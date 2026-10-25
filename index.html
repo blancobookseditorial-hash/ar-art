@@ -448,7 +448,28 @@ async function loadCertificateRegistry() {
 
 loadCertificateRegistry();
       startButton.addEventListener("click", async () => {
+  const selectedArtwork = artworkSelect.value.trim();
+  const enteredCode = certificateCode.value.trim();
 
+  if (!selectedArtwork || !enteredCode) {
+    accessMessage.textContent =
+      "Please select an artwork and enter your certificate number.";
+    return;
+  }
+
+  const matchingCertificate = certificateRecords.find(record =>
+    record.status === "registered" &&
+    record.work?.trim().toLowerCase() === selectedArtwork.toLowerCase() &&
+    String(record.edition).trim() === enteredCode
+  );
+
+  if (!matchingCertificate) {
+    accessMessage.textContent =
+      "Certificate not found for the selected artwork.";
+    return;
+  }
+
+  accessMessage.textContent = "";
         experienceStarted = true;
 
         await unlockSound();
