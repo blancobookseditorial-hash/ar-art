@@ -96,7 +96,20 @@
   An exclusive Augmented Reality experience<br>
   for Blanco Art House collectors.
 </p>
+<!-- Certificate access form -->
+<div id="certificateAccess" style="width:100%; max-width:340px; margin:20px auto; text-align:left;">
+  <label for="artworkSelect">Artwork Title</label>
+  <select id="artworkSelect" style="width:100%; padding:12px; margin:8px 0 16px; border-radius:8px;">
+    <option value="">Select your artwork</option>
+  </select>
 
+  <label for="certificateCode">Certificate Number</label>
+  <input id="certificateCode" type="text" autocomplete="off"
+    placeholder="Enter your certificate number"
+    style="width:100%; box-sizing:border-box; padding:12px; margin-top:8px; border-radius:8px;">
+
+  <p id="accessMessage" role="status" aria-live="polite" style="font-size:14px; min-height:20px;"></p>
+</div>
     <button id="startButton">
       Iniciar experiencia AR
     </button>
