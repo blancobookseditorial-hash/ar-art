@@ -411,7 +411,42 @@
 
       /*
        * 1. El boton inicia la experiencia y pide el primer toque.
-       */
+       */// Load registered artwork titles
+const artworkSelect = document.querySelector("#artworkSelect");
+const certificateCode = document.querySelector("#certificateCode");
+const accessMessage = document.querySelector("#accessMessage");
+
+let certificateRecords = [];
+
+async function loadCertificateRegistry() {
+  try {
+    const response = await fetch("/verify/registry.json", { cache: "no-store" });
+    if (!response.ok) throw new Error("Registry unavailable");
+
+    const data = await response.json();
+    certificateRecords = Array.isArray(data.records) ? data.records : [];
+
+    const names = [...new Set(
+      certificateRecords
+        .filter(record => record.status === "registered")
+        .map(record => record.work?.trim())
+        .filter(Boolean)
+    )].sort((a, b) => a.localeCompare(b));
+
+    artworkSelect.replaceChildren(new Option("Select your artwork", ""));
+
+    names.forEach(name => {
+      artworkSelect.add(new Option(name, name));
+    });
+
+    accessMessage.textContent = "";
+  } catch (error) {
+    console.error("Certificate registry:", error);
+    accessMessage.textContent = "Unable to load artworks. Please try again.";
+  }
+}
+
+loadCertificateRegistry();
       startButton.addEventListener("click", async () => {
 
         experienceStarted = true;
