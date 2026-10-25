@@ -379,37 +379,60 @@ const pares = [
        * se destapa el audio y se pausa, todo dentro del mismo
        * toque. A partir de ahi los videos conservan el permiso.
        */
-      async function unlockSound() {
+     
+async function unlockSound() {
+  if (soundUnlocked) return;
 
-        if (soundUnlocked) return;
-        soundUnlocked = true;
+  // Preparar todos los videos sin permitir sonido ajeno.
+  videos.forEach(v => {
+    if (!v) return;
+    v.pause();
+    v.muted = true;
+    v.volume = 0;
+    v.currentTime = 0;
+  });
 
-        for (const v of videos) {
-          if (!v) continue;
-          v.muted = true;
-          try {
-            await v.play();
-          } catch (error) {
-            console.log("Arranque silenciado:", error);
-          }
-        }
+  // Solo el video autorizado participa en la preparación.
+  const selectedPair = pares.find(par =>
+    authorizedArtwork &&
+    par.work.trim().toLowerCase() ===
+      authorizedArtwork.trim().toLowerCase()
+  );
 
-        videos.forEach(function (v) {
-          if (!v) return;
-          v.muted = false;
-          v.volume = 1;
-        });
+  const selectedVideo = selectedPair?.video;
 
-        for (const v of videos) {
-          if (!v) continue;
-          v.pause();
-          v.currentTime = 0;
-        }
+  if (!selectedVideo) {
+    console.warn("No AR video for this certificate.");
+    return;
+  }
 
-        if (soundPrompt) {
-          soundPrompt.style.display = "none";
-        }
-      }
+  try {
+    selectedVideo.muted = true;
+    selectedVideo.volume = 0;
+
+   // Preparar el video sin iniciar su reproducción.
+selectedVideo.pause();
+selectedVideo.currentTime = 0;
+
+// El audio se activará mediante la interacción
+// del usuario cuando corresponda.
+soundUnlocked = false;
+  } catch (error) {
+    console.log("Audio preparation:", error);
+  } finally {
+    // Ningún video debe quedar reproduciéndose.
+    videos.forEach(v => {
+      if (!v) return;
+      v.pause();
+      v.muted = true;
+      v.volume = 0;
+    });
+
+    if (soundPrompt) {
+      soundPrompt.style.display = "none";
+    }
+  }
+}
 
 
       /*
