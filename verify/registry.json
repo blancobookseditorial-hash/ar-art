@@ -91,7 +91,7 @@
       "status": "registered",
       "image": "/artwork-images/Anatomia-de-una-isla-shirt.jpeg"
     },
-        {
+    {
       "work": "A Dream of Wings",
       "edition": "00224102026",
       "format": "Painting",
@@ -125,6 +125,43 @@
       "format": "Painting",
       "status": "registered",
       "image": "/artwork-images/unfolding-the-sky-acrylic.jpg"
-    }
+    },
+    {
+      "work": "What Clouds cannot Dim",
+      "edition": "00125102026",
+      "format": "Sublimation",
+      "status": "registered",
+      "image": "/artwork-images/What-clouds-cannot-dim-sublimation-shirt.jpeg"
+    }    
+,
+{
+  "work": "El Lunatico",
+  "edition": "00225102026",
+  "format": "Painting",
+  "status": "registered",
+  "image": "/artwork-images/el-lunatico-acrylic.jpg"
+},
+{
+  "work": "Unfolding the Sky",
+  "edition": "00310252026",
+  "format": "Painting",
+  "status": "registered",
+  "image": "/artwork-images/unfolding-the-sky-acrylic.jpg"
+},
+{
+  "work": "Seths Dreams",
+  "edition": "00325102026",
+  "format": "Painting",
+  "status": "registered",
+  "image": "/artwork-images/seths-dreams-painting.jpeg"
+},
+{
+  "work": "A Dream of Wings",
+  "edition": "00325102026",
+  "format": "Painting",
+  "status": "registered",
+  "image": "/artwork-images/a-dream-of-wings-acrylic.jpg"
+}
+  
   ]
 }
