@@ -387,6 +387,23 @@ const pares = [
       let allowedArtworks = [];
       let soundUnlocked = false;
 
+      
+const rememberARCheckbox = document.querySelector("#rememberARAccess");
+const SAVED_AR_STORAGE_KEY = "blanco-art-house-saved-ar-v1";
+
+function readSavedARAccess() {
+  try {
+    const stored = localStorage.getItem(SAVED_AR_STORAGE_KEY);
+    if (!stored) return [];
+
+    const entries = JSON.parse(stored);
+    return Array.isArray(entries) ? entries : [];
+  } catch (error) {
+    console.warn("Unable to read saved AR access:", error);
+    return [];
+  }
+}
+
 
       /*
        * Desbloqueo de audio para iOS.
