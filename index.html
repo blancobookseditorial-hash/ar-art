@@ -584,6 +584,52 @@ if (selectedArtwork === "__admin__" || selectedArtwork === "__puzzles__") {
 
   authorizedArtwork = matchingCertificate.work.trim();
   allowedArtworks = [authorizedArtwork];
+  
+if (rememberARCheckbox && rememberARCheckbox.checked) {
+  try {
+    const response = await fetch(
+      "/.netlify/functions/remember-ar-access",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          action: "issue",
+          work: matchingCertificate.work,
+          edition: String(matchingCertificate.edition)
+        })
+      }
+    );
+
+    const result = await response.json();
+
+    if (response.ok && result.success && result.token) {
+      const saved = readSavedARAccess();
+
+     
+const updated = saved.filter(item =>
+  item.token !== result.token
+);
+
+updated.push({
+  work: matchingCertificate.work,
+  token: result.token
+});
+
+
+      localStorage.setItem(
+        SAVED_AR_STORAGE_KEY,
+        JSON.stringify(updated)
+      );
+    } else {
+      console.warn("AR access could not be saved.");
+    }
+  } catch (error) {
+    console.warn("Remember AR Access:", error);
+  }
+}
+
 }
 
 accessMessage.textContent = "";
