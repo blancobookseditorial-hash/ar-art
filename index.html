@@ -433,6 +433,101 @@ if (addAnotherArtworkButton && certificateAccessForm) {
 }
 
 
+async function loadSavedARCollection() {
+  if (!myARCollection || !savedArtworkList) return;
+
+  const savedEntries = readSavedARAccess();
+  savedArtworkList.replaceChildren();
+
+  if (!savedEntries.length) {
+    myARCollection.style.display = "none";
+    return;
+  }
+
+  for (const entry of savedEntries) {
+    if (!entry || typeof entry.token !== "string") continue;
+
+    try {
+      const response = await fetch(
+        "/.netlify/functions/remember-ar-access",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "verify",
+            token: entry.token
+          })
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success ||
+          !Array.isArray(result.allowedArtworks) ||
+          result.allowedArtworks.length !== 1 ||
+          typeof result.work !== "string" ||
+          result.allowedArtworks[0] !== result.work) {
+        continue;
+      }
+
+      const artworkButton = document.createElement("button");
+      artworkButton.type = "button";
+      artworkButton.textContent = "View " + result.work;
+      artworkButton.style.cssText =
+        "display:block;width:100%;margin:10px 0;padding:12px;border-radius:8px;cursor:pointer;";
+
+      artworkButton.addEventListener("click", async () => {
+        const recheck = await fetch(
+          "/.netlify/functions/remember-ar-access",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "verify",
+              token: entry.token
+            })
+          }
+        ).then(r => r.ok ? r.json() : null).catch(() => null);
+
+        if (!recheck || !recheck.success ||
+            recheck.work !== result.work ||
+            !Array.isArray(recheck.allowedArtworks) ||
+            recheck.allowedArtworks.length !== 1 ||
+            recheck.allowedArtworks[0] !== recheck.work) {
+          accessMessage.textContent =
+            "Saved access unavailable. Please enter your certificate again.";
+          certificateAccessForm.style.display = "block";
+          myARCollection.style.display = "none";
+          return;
+        }
+
+        authorizedArtwork = recheck.work;
+        allowedArtworks = [recheck.work];
+        accessMessage.textContent = "";
+        experienceStarted = true;
+
+        await unlockSound();
+
+        startScreen.style.display = "none";
+        instructions.style.display = "block";
+      });
+
+      savedArtworkList.appendChild(artworkButton);
+    } catch (error) {
+      console.warn("Saved AR verification:", error);
+    }
+  }
+
+  if (savedArtworkList.children.length > 0) {
+    myARCollection.style.display = "block";
+    certificateAccessForm.style.display = "none";
+  } else {
+    myARCollection.style.display = "none";
+  }
+}
+
+loadSavedARCollection();
+
       /*
        * Desbloqueo de audio para iOS.
        *
