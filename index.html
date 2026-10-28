@@ -401,6 +401,11 @@ const pares = [
 const rememberARCheckbox = document.querySelector("#rememberARAccess");
 const SAVED_AR_STORAGE_KEY = "blanco-art-house-saved-ar-v1";
 
+const myARCollection = document.querySelector("#myARCollection");
+const savedArtworkList = document.querySelector("#savedArtworkList");
+const addAnotherArtworkButton = document.querySelector("#addAnotherArtwork");
+const certificateAccessForm = document.querySelector("#certificateAccess");
+
 function readSavedARAccess() {
   try {
     const stored = localStorage.getItem(SAVED_AR_STORAGE_KEY);
@@ -412,6 +417,19 @@ function readSavedARAccess() {
     console.warn("Unable to read saved AR access:", error);
     return [];
   }
+}
+
+if (addAnotherArtworkButton && certificateAccessForm) {
+  addAnotherArtworkButton.addEventListener("click", () => {
+    certificateAccessForm.style.display = "block";
+    artworkSelect.value = "";
+    certificateCode.value = "";
+    accessMessage.textContent = "";
+    certificateAccessForm.scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    });
+  });
 }
 
 
